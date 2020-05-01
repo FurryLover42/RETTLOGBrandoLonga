@@ -1,5 +1,5 @@
 library ieee;
-use ieee.std.logic_1164.all;
+use ieee.std_logic_1164.all;
 
 --il programma è costituito da una finite state machine in grado di riconoscere la sequenza 1101.
 --tale sequenza viene riconosciuta sul segnale di input ad ogni fronte di salita del clock.

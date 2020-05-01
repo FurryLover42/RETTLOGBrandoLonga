@@ -1,6 +1,5 @@
 library ieee;
-use ieee.std.logic_1164.all;
-use ieee.std.numeric_std.all;
+use ieee.std_logic_1164.all;
 
 --	The syntax for an entity with a port in VHDL is:
 --	entity <entity_name> is
