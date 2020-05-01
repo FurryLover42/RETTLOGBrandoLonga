@@ -23,11 +23,11 @@ use ieee.std_logic_1164.all;
 
 
 
-entity fsm is	
-end fsm;
+entity fsm_tb is	
+end fsm_tb;
 
 
-architecture sim of fsm is
+architecture sim of fsm_tb is
 
 	signal input:	signal;
 	signal clk:		signal;
