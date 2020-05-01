@@ -9,12 +9,12 @@ use ieee.std_logic_1164.all;
 entity fsm is port(
 	
 	--inputs
-	input:	 in signal;
-	clk:	 in signal;
-	reset:	 in signal;
+	input:	 in std_logic;
+	clk:	 in std_logic;
+	reset:	 in std_logic;
 	
 	--outputs
-	output:	out signal);
+	output:	out std_logic);
 	
 end fsm;
 
@@ -76,7 +76,7 @@ begin --begin architecture
 	
 	output_calculator: process(current_state) --moore machine: it depends only on current_state
 	begin
-		if present_state = S4 then
+		if current_state = S4 then
 			output <= '1';
 		else
 			output <= '0';

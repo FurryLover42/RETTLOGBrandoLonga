@@ -29,18 +29,18 @@ end fsm_tb;
 
 architecture sim of fsm_tb is
 
-	signal input:	signal;
-	signal clk:		signal;
-	signal reset:	signal;
-	signal output:	signal;
+	signal input:	std_logic;
+	signal clk:		std_logic;
+	signal reset:	std_logic;
+	signal output:	std_logic;
 
 begin
 	
 	--port mapping
 	finite_state_machine : entity work.fsm(rtl) port map(
-		input	=> input;
-		clk		=> clk;
-		reset	=> reset;
+		input	=> input,
+		clk		=> clk,
+		reset	=> reset,
 		output	=> output);
 	
 	--clock process
@@ -57,12 +57,43 @@ begin
 	begin
 		input <= '0';
 		reset <= '1';
-		wait for 8 ns;
+		wait for 28 ns;
 		reset <= '0';
 		input <= '1';
-		wait for 45 ns;
+		wait for 85 ns;
+		input <= '0';
+		wait for 20 ns;
+		input <= '1';
+		wait for 23 ns;
+		input <= '0';
+		wait for 30 ns;
+		input <= '1';
+		wait for 7 ns;
+		input <= '0';
+		wait for 23 ns;
+		input <= '1';
+		wait for 12 ns;
+		input <= '0';
+		wait for 19 ns;
+		input <= '1';
+		wait for 10 ns;
+		input <= '0';
+		wait for 13 ns;
+		input <= '1';
+		wait for 29 ns;
 		input <= '0';
 		wait for 10 ns;
+		input <= '1';
+		wait for 90 ns;
+		input <= '0';
+		wait for 20 ns;
+		input <= '1';
+		wait for 94 ns;
+		reset <= '1';
+		wait for 55 ns;
+		input <= '0';
+		reset <= '0';
+		wait for 24 ns;
 		input <= '1';
 		wait;
 		
@@ -70,4 +101,4 @@ begin
 	
 
 end architecture sim;
--- va bene anche solo end RTL;
+-- va bene anche solo end sim;
