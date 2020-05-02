@@ -20,7 +20,7 @@ entity project_reti_logiche is
 		o_address	:out std_logic_vector(15 downto 0);	--vettore di uscita contenente l'indirizzo dell'area di memoria desiderata
 		o_done		:out std_logic;						--segnale di FINE ELABORAZIONE che comunica la fine dell'elaborazione e la scrittura del risultato in memoria
 		o_en		:out std_logic;						--segnale di ENABLE da dover inviare alla memoria per poter comunicare (sia in lettura che in scrittura)
-		o_we		:out std_logic;						--segnale di WRITE ENABLE da inviare alla memoria. Se ='1', richiede la scrittura, se = '0' richiede la lettura
+		o_we		:out std_logic;						--segnale di WRITE ENABLE da inviare alla memoria. Se = 1 richiede la scrittura, se = 0 richiede la lettura
 		o_data		:out std_logic_vector(7 downto 0)	--vettore di uscita dal componente verso la memoria
 	);
 end project_reti_logiche;
@@ -30,7 +30,17 @@ end project_reti_logiche;
 
 architecture rtl of project_reti_logiche is
 	--internal signals
-	--(still blank for now)
+	
+	--enumerazione degli stati della macchina. Per ora i nomi sono temporanei in attesa di nomi migliori, ma possiamo anche fregarcene e spiegare nella documentazione
+	type state_type is (
+		START_IDLE,	--si va in questo stato in seguito al segnale di reset, e ci si resta finché start = 0
+		S1,
+		S2,
+		S3,
+		S4,	--probabilmente verrà espanso
+		S5,
+		END_IDLE
+	); --end state_type declaration
 
 begin
 	--architectural behaviour
