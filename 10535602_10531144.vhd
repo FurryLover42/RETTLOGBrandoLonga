@@ -46,11 +46,11 @@ architecture rtl of project_reti_logiche is
 	--FSM signals
 	signal current_state	: state_type;	--stato attuale
 	signal next_state		: state_type;	--prossimo stato della FSM
-	signal wz_counter		: unsigned(3 downto 0);	--contatore della working zone considerata (da 0 a 7, più bit di overflow).
+	signal wz_counter		: unsigned(3 downto 0);	--contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
 	--other internal signals
-	signal base_address	: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare
-	signal wz_address	: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento
-	signal calc_result	: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta
+	signal base_address	: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare USE THIS
+	signal wz_address	: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento USE THIS
+	signal calc_result	: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta USE THIS
 	signal encoded_res	: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
 
 begin
@@ -63,5 +63,7 @@ begin
 			current_state <= next_state;
 		end if;
 	end process;
+			
+	
 
 end rtl;
