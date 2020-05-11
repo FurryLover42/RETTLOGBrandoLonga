@@ -63,7 +63,27 @@ begin
 			current_state <= next_state;
 		end if;
 	end process;
-			
 	
+	--questo processo stabilisce se il base address appartiene alla working zone e decide il next_state di conseguenza
+	calc_process : process(i_clk, current_state, base_address, wz_address)
+		variable completed : std_logic := '0';	--questa variabile serve a lasciare alla computazione un intero ciclo di clock
+		                                        --TODO: sarebbe meglio un signal?
+	begin
+		if(current_state = WZ_CALC_STATE) then
+			if(rising_edge(i_clk) and completed = '0') then
+				calc_result <= base_address - wz_address;	--TODO: check this
+				-- se non avviene overflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
+				-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
+				completed := '1';	-- in questo modo si ha a disposizione un intero ciclo di clock per la sottrazione
+			elsif(rising_edge(i_clk) and completed = '1') then
+				if(calc_result <= 3) then	--3 perché è l'offset. TODO: rendi offset una variabile globale (non so come si faccia in vhdl)
+					next_state <= FOUND_WZ_ENCODING;
+				else
+					completed  := '0';
+					next_state <= WZ_READING_STATE;
+				end if; --decisione in base al risultato
+			end if; --decisione in base a clock e completed
+		end if; --decisione in base allo stato
+	end process;
 
 end rtl;
