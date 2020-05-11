@@ -78,11 +78,49 @@ begin
 			elsif(rising_edge(i_clk) and completed = '1') then
 				if(calc_result <= 3) then	--3 perché è l'offset. TODO: rendi offset una variabile globale (non so come si faccia in vhdl)
 					next_state <= FOUND_WZ_ENCODING;
+					completed := '0';	--serve solo nei casi di reset
 				else
 					completed  := '0';
 					next_state <= WZ_READING_STATE;
 				end if; --decisione in base al risultato
 			end if; --decisione in base a clock e completed
+		end if; --decisione in base allo stato
+	end process;
+	
+	--questo processo codifica encoded_res
+	found_wz_encode : process(i_clk, current_state, base_address, wz_address, calc_result, wz_counter)
+		variable completed    : std_logic := '0';
+	begin
+		if(current_state = NO_WZ_ENCODING) then	--codifica nel caso in cui non è stata trovata nessuna working zone
+			if(rising_edge(i_clk) and completed = '0') then
+				encoded_res(7) <= '0';
+				encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
+				completed := '1';
+			elsif(rising_edge(i_clk) and completed = '1') then
+				next_state <= WRITING_STATE;
+				completed := '0';
+			end if; --decisione in base al clock
+		elsif (current_state = FOUND_WZ_ENCODING) then --codifica nel caso in cui è stata trovata una working zone
+			if(rising_edge(i_clk) and completed = '0') then
+				encoded_res(7) <= '1';
+				encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
+				case calc_result(1 downto 0) is
+					when "00" =>
+						encoded_res(3 downto 0) <= "0001";
+					when "01" =>
+						encoded_res(3 downto 0) <= "0010";
+					when "10" =>
+						encoded_res(3 downto 0) <= "0100";
+					when "11" =>
+					    encoded_res(3 downto 0) <= "1000";
+					when others => --impossible
+					    encoded_res(3 downto 0) <= "XXXX";
+				end case;
+				completed := '1';
+			elsif(rising_edge(i_clk) and completed = '1') then
+				next_state <= WRITING_STATE;
+				completed := '0';
+			end if; --decisione in base al clock
 		end if; --decisione in base allo stato
 	end process;
 
