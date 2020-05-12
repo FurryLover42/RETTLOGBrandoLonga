@@ -48,10 +48,10 @@ architecture rtl of project_reti_logiche is
 	signal next_state		: state_type;				--prossimo stato della FSM
 	signal wz_counter		: unsigned(3 downto 0);		--contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
 	--other internal signals
-	signal base_address	: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare USE THIS
-	signal wz_address	: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento USE THIS
-	signal calc_result	: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta USE THIS
-	signal encoded_res	: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
+	signal base_address		: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare USE THIS
+	signal wz_address		: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento USE THIS
+	signal calc_result		: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta USE THIS
+	signal encoded_res		: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
 
 begin
 	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
@@ -87,55 +87,61 @@ begin
 				
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
-				if(rising_edge(i_clk) and completed_verify = '0') then
+				if(rising_edge(i_clk)) then
+					if(completed_verify = '0') then
 					calc_result <= base_address - wz_address;	--TODO: check this
 						-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
 						-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 					completed_verify := '1';	-- in questo modo si ha a disposizione un intero ciclo di clock per la sottrazione
-				elsif(rising_edge(i_clk) and completed_verify = '1') then
-					if(calc_result <= 3) then	--3 perché è l'offset. TODO: rendi offset una variabile globale (non so come si faccia in vhdl)
-						next_state <= FOUND_WZ_ENCODING;
-						completed_verify := '0';	--serve solo nei casi di reset
-					else
-						completed_verify := '0';
-						next_state <= WZ_READING_STATE;
-					end if; --decisione in base al risultato
-				end if; --decisione in base a clock e completed_verify
+					elsif(completed_verify = '1') then
+						if(calc_result <= 3) then	--3 perché è l'offset. TODO: rendi offset una variabile globale (non so come si faccia in vhdl)
+							next_state <= FOUND_WZ_ENCODING;
+							completed_verify := '0';    --serve solo nei casi di reset
+						else
+							completed_verify := '0';
+							next_state <= WZ_READING_STATE;
+						end if; --decisione in base al risultato
+					end if;	--decisione in base a completed_verify
+				end if; --decisione in base al clock
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
-				if(rising_edge(i_clk) and completed_encoding = '0') then
-					encoded_res(7) <= '0';
-					encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
-					completed_encoding := '1';
-				elsif(rising_edge(i_clk) and completed_encoding = '1') then
-					next_state <= WRITING_STATE;
-					completed_encoding := '0';
-				end if; --decisione in base a clock e completed_encoding
+				if(rising_edge(i_clk)) then
+					if(completed_encoding = '0') then
+						encoded_res(7) <= '0';
+						encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
+						completed_encoding := '1';
+					elsif(completed_encoding = '1') then
+						next_state <= WRITING_STATE;
+						completed_encoding := '0';
+					end if; --decisione in base a completed_encoding					
+				end if; --decisione in base al clock
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
-				if(rising_edge(i_clk) and completed_encoding = '0') then
+				if(rising_edge(i_clk)) then
+					if(completed_encoding = '0') then
 					encoded_res(7) <= '1';
-					encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
-					case calc_result(1 downto 0) is
-						when "00" =>
-							encoded_res(3 downto 0) <= "0001";
-						when "01" =>
-							encoded_res(3 downto 0) <= "0010";
-						when "10" =>
-							encoded_res(3 downto 0) <= "0100";
-						when "11" =>
-						    encoded_res(3 downto 0) <= "1000";
-						when others => --condizione impossibile
-						    encoded_res(3 downto 0) <= "XXXX";
-					end case;
-					completed_encoding := '1';
-				elsif(rising_edge(i_clk) and completed_encoding = '1') then
-					next_state <= WRITING_STATE;
-					completed_encoding := '0';
-				end if; --decisione in base a clock e completed_encoding
+						encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
+						case calc_result(1 downto 0) is
+							when "00" =>
+								encoded_res(3 downto 0) <= "0001";
+							when "01" =>
+								encoded_res(3 downto 0) <= "0010";
+							when "10" =>
+								encoded_res(3 downto 0) <= "0100";
+							when "11" =>
+								encoded_res(3 downto 0) <= "1000";
+							when others => --condizione impossibile
+								encoded_res(3 downto 0) <= "XXXX";
+						end case;
+						completed_encoding := '1';
+					elsif(completed_encoding = '1') then
+						next_state <= WRITING_STATE;
+						completed_encoding := '0';
+					end if; --decisione in base a completed_encoding					
+				end if; --decisione in base al clock
 					
 			when others =>
 				--not programmed yet, add here the other states, but leave "when others =>" or the compiler will complain
