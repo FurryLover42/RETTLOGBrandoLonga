@@ -64,7 +64,7 @@ begin
 		end if;
 	end process;
 	
-	calc_process : process(i_clk, current_state, base_address, wz_address, calc_result, wz_counter)
+	calc_process : process(i_clk, i_start, current_state, base_address, wz_address, calc_result, wz_counter)
 		
 		variable completed_verify	: std_logic := '0';	--per la computazione della verifica della working zone
 		variable completed_encoding : std_logic := '0';	--per la codifica del segnale di uscita, sia nel caso NO_WZ sia nel FOUND_WZ
@@ -72,7 +72,20 @@ begin
 	begin
 		case current_state is
 			
-			--stabilisce se il base address appartiene alla working zone contenuta in wz_address
+			-- rimane in questo stato fino al segnale di start
+			when START_IDLE =>
+				if(i_start = '1') then
+					next_state <= WZ_READING_STATE;
+				else
+					--reset dei segnali
+					--TODO: non so se sia meglio eseguire qui il reset dei segnali, inizializzarne già qualcuno all'inizio o non inizializzarli affatto
+					o_en		<= '0';
+					o_we		<= '0';
+					o_done 		<= '0';
+					wz_counter	<= (others => '0');
+				end if;
+				
+			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
 				if(rising_edge(i_clk) and completed_verify = '0') then
 					calc_result <= base_address - wz_address;	--TODO: check this
@@ -84,12 +97,12 @@ begin
 						next_state <= FOUND_WZ_ENCODING;
 						completed_verify := '0';	--serve solo nei casi di reset
 					else
-						completed_verify  := '0';
+						completed_verify := '0';
 						next_state <= WZ_READING_STATE;
 					end if; --decisione in base al risultato
 				end if; --decisione in base a clock e completed_verify
 
-			--codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
+			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
 				if(rising_edge(i_clk) and completed_encoding = '0') then
 					encoded_res(7) <= '0';
