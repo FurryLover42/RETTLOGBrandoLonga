@@ -44,14 +44,53 @@ architecture rtl of project_reti_logiche is
 	); --end state_type declaration
 	
 	--FSM signals
-	signal current_state	: state_type;				--stato attuale
-	signal next_state		: state_type;				--prossimo stato della FSM
-	signal wz_counter		: unsigned(3 downto 0);		--contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
+	signal current_state	: state_type;				      --stato attuale
+	signal next_state		: state_type;				      --prossimo stato della FSM
+	signal wz_counter		: unsigned(3 downto 0) := "0000"; --contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
 	--other internal signals
 	signal base_address		: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare USE THIS
 	signal wz_address		: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento USE THIS
 	signal calc_result		: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta USE THIS
 	signal encoded_res		: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
+
+	--Dichiarazioni per Read Address
+	--Dichiarazioni per la sub-FSM
+	type t_ra_state is (
+		RA_WAIT_FOR_START,   --Aspetta segnale i_start
+		RA_ASK_ADDRESS,      --Richiedi indirizzo a RAM
+		RA_READ_ADDRESS,     --Leggi indirizzo da RAM
+		RA_ASK_WZ,           --Richiedi indirizzo base WZ a RAM
+		RA_READ_WZ,          --Leggi indirizzo base WZ da RAM
+		RA_WAIT_FOR_RESULTS, --Aspetta che processo di elaborazione dia successo o fallimento
+		RA_DONE              --My work here is done
+	);
+	signal ra_current_state  : t_ra_state := RA_WAIT_FOR_START; --Stato attuale della sub-FSM
+	signal ra_next_state     : t_ra_state;                      --Stato prossimo della sub-FSM
+
+	--Dichiarazioni per comunicare con operazioni di controllo
+	signal ra_result_found   : std_logic := '0'; --Alzare a 1 se l'operazione di controllo è terminata
+	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
+	signal ra_result_faliure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato negativo
+
+	--Dichiarazioni per comunicare con RAM
+	signal ra_sent             : std_logic := '0';              --Alzare a 1 quando l'indirizzo è stato richiesto alla RAM
+	signal ra_received         : std_logic := '0';              --Alzare a 1 quando si ha ricevuto risposta dalla RAM
+	signal ra_wake_up_and_send : std_logic := '0';              --Alzare a 1 quando si deve inviare messaggi alla RAM
+	signal ra_o_address        : std_logic_vector(7 down to 0); --indirizzo da mandare al processo di comunicazione con RAM
+	signal ra_o_en             : std_logic := '0';              --Alzare a 1 per chiedere al processo di comunicazione con RAM di comunicare con la RAM
+
+	--Dichiarazioni costanti
+	constant BASEADD    : std_logic_vector(15 down to 0) := x"0000";
+	constant BASEOFFSET : integer := 8;
+	constant ADDOFF     : integer := 8;
+
+	--Dichiarazioni funzioni
+	function calculateAddress(offset :integer) return std_logic_vector(15 down to 0) is
+	begin
+
+		return BASEADD + BASEOFFSET * offset;
+
+	end function;
 
 begin
 	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
@@ -147,5 +186,161 @@ begin
 				--not programmed yet, add here the other states, but leave "when others =>" or the compiler will complain
 			end case; --decisione in base allo stato
 	end process;
+
+	--Processi di read address
+	ra_state_register : process( i_clk )
+	begin
+		
+		--Azioni di reset per i processi di read address vanno qui
+		if(i_rst = '1') then
+
+			ra_current_state <= RA_WAIT_FOR_START;
+
+		elsif(current_state = WZ_READING_STATE and rising_edge(i_clk)) then
+			
+			ra_current_state <= ra_next_state;		
+
+		end if ;
+
+	end process ; -- ra_state_register
+
+	ra_next_state_logic : process( ra_current_state )
+	begin
+		
+		ra_wake_up_and_send <= '0';
+
+		case(ra_current_state) is
+
+			when RA_WAIT_FOR_START =>
+				if (i_start = '1') then
+					ra_next_state       <= RA_ASK_ADDRESS;
+					ra_wake_up_and_send <= '1'           ;
+				else
+					ra_next_state <= RA_WAIT_FOR_START;
+				end if ;
+			
+			when RA_ASK_ADDRESS =>
+				if(ra_sent = '1') then
+					ra_next_state <= RA_READ_ADDRESS;
+				else
+					ra_next_state <= RA_ASK_ADDRESS;	
+				end if ;
+
+			when RA_READ_ADDRESS =>
+				if(ra_received = '1') then
+					ra_next_state       <= RA_ASK_WZ;	
+					ra_wake_up_and_send <= '1'      ;
+				else
+					ra_next_state <= RA_READ_ADDRESS;		
+				end if ;
+
+			when RA_ASK_WZ =>
+				if(ra_sent = '1') then
+					ra_next_state <= RA_READ_WZ;
+				else
+					ra_next_state <= RA_ASK_WZ;	
+				end if ;
+
+			when RA_READ_WZ =>
+				if(ra_received = '1') then
+					ra_next_state <= RA_WAIT_FOR_RESULTS;
+				else
+					ra_next_state <= RA_READ_WZ;		
+				end if ;
+
+			when RA_WAIT_FOR_RESULTS =>
+				if(ra_result_found = '1') then
+					if(ra_result_success = '1') then
+						ra_next_state <= RA_DONE;
+					elsif(ra_result_faliure = '1') then
+						if(wz_counter = 7) then
+							ra_next_state <= RA_DONE;
+						else
+							wz_counter <= wz_counter + 1;
+							ra_next_state <= RA_ASK_WZ;	
+						end if ;
+					end if;
+				else
+					ra_next_state <= RA_WAIT_FOR_RESULTS;
+				end if;
+		
+			when others =>
+				ra_next_state <= RA_DONE;
+
+		end case ;
+
+	end process ; -- ra_next_state_logic
+
+	ra_speak_to_RAM : process( ra_wake_up_and_send, i_data )
+	begin
+		
+		if(i_rst = '1') then
+			ra_o_address <= x"0000";
+			ra_o_en      <= '0'    ;
+			ra_sent      <= '0'    ;
+			ra_received  <= '0'    ;
+			base_address <= x"00"  ;
+			wz_address   <= x"00"  ;
+		else
+			case( ra_current_state ) is
+			
+				when RA_ASK_ADDRESS =>
+					if(ra_wake_up_and_send = '1') then
+						ra_o_address <= calculateAddress(ADDOFF);
+						ra_o_en      <= '1'   					;
+						ra_sent      <= '1'   					;
+						ra_received  <= '0'   					;
+					end if;
+
+				when RA_ASK_WZ =>
+					if(ra_wake_up_and_send = '1') then
+						ra_o_address <= calculateAddress(wz_counter);
+						ra_o_en      <= '1'   					    ;
+						ra_sent      <= '1'   					    ;
+						ra_received  <= '0'   					    ;
+					end if;
+			
+				when RA_READ_ADDRESS =>
+					if(ra_sent = '1') then
+						base_address <= i_data;
+						ra_o_en      <= '0'   ;
+						ra_sent      <= '0'   ;
+						ra_received  <= '1'   ;
+					end if;
+
+				when RA_READ_WZ =>
+					if(ra_sent = '1') then
+						wz_address  <= i_data;
+						ra_o_en     <= '0'   ;
+						ra_sent     <= '0'   ;
+						ra_received <= '1'   ;
+					end if;
+
+				when others =>
+					ra_sent     <= '0';
+					ra_received <= '0';
+
+			end case ;
+		end if;
+
+	end process ; -- ra_speak_to_RAM
+
+
+	--Use this process to speak directly to the RAM
+	speak_to_RAM : process( i_clk )
+	begin
+
+		case( current_state ) is
+		
+			when WZ_READING_STATE =>
+				o_address <= ra_o_address;
+				o_en      <= ra_o_en;
+		
+			when others =>
+		
+		end case ;
+
+
+	end process ; -- speak_to_RAM
 
 end rtl;

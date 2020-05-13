@@ -7,9 +7,9 @@ entity read_address_test is
 	i_rst  	  : in std_logic;                      --Positive reset
 	i_data 	  : in std_logic_vector(7 down to 0);  --Input data from RAM
 
-	o_address : out std_logic_vector(15 down to 0) --Output address of RAM
-	o_en      : out std_logic;                     --Enable signal, 1 = comunicating with RAM, 0 = not comunicating
-	o_we      : out std_logic;                     --Enable write signal, 1 = writing to RAM, 0 = reading from RAM 
+	o_address : out std_logic_vector(15 down to 0); --Output address of RAM
+	o_en      : out std_logic;                      --Enable signal, 1 = comunicating with RAM, 0 = not comunicating
+	o_we      : out std_logic;                      --Enable write signal, 1 = writing to RAM, 0 = reading from RAM 
   ) ;
 end entity ; -- read_address_test
 
