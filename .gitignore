@@ -1,8 +1,12 @@
 #ignora i file generati da vivado. Probabilmente inutile ma lo lascio
 vivado.*
-#ignora i file di log e jou
+#ignora i file di log e jou, anche questo probabilmente inutile ma non voglio correre rischi
 *.log
 *.jou
+#ignora la cartella che uso in locale per le simulazioni
+log_and_jou/
+#cartella nascosta di vivado
+.jobs/
 
 #ignora le modifiche alle quattro cartelle principali di vivado, così si evita di committare i cambiamenti
 working_zones_project.ip_user_files/
