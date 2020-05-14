@@ -76,19 +76,20 @@ architecture rtl of project_reti_logiche is
 	signal ra_sent             : std_logic := '0';              --Alzare a 1 quando l'indirizzo è stato richiesto alla RAM
 	signal ra_received         : std_logic := '0';              --Alzare a 1 quando si ha ricevuto risposta dalla RAM
 	signal ra_wake_up_and_send : std_logic := '0';              --Alzare a 1 quando si deve inviare messaggi alla RAM
-	signal ra_o_address        : std_logic_vector(7 down to 0); --indirizzo da mandare al processo di comunicazione con RAM
+	signal ra_o_address        : std_logic_vector(15 downto 0); --indirizzo da mandare al processo di comunicazione con RAM
 	signal ra_o_en             : std_logic := '0';              --Alzare a 1 per chiedere al processo di comunicazione con RAM di comunicare con la RAM
 
 	--Dichiarazioni costanti
-	constant BASEADD    : std_logic_vector(15 down to 0) := x"0000";
+	constant BASEADD    : unsigned(15 downto 0) := x"0000";
 	constant BASEOFFSET : integer := 8;
-	constant ADDOFF     : integer := 8;
+	constant ADDOFF     : unsigned(3 downto 0) := x"8";
 
 	--Dichiarazioni funzioni
-	function calculateAddress(offset :integer) return std_logic_vector(15 down to 0) is
+	function calculateAddress(offset :unsigned)
+	return std_logic_vector is
 	begin
-
-		return BASEADD + BASEOFFSET * offset;
+	
+		return std_logic_vector(BASEADD + BASEOFFSET * offset);
 
 	end function;
 
@@ -286,7 +287,7 @@ begin
 			
 				when RA_ASK_ADDRESS =>
 					if(ra_wake_up_and_send = '1') then
-						ra_o_address <= calculateAddress(ADDOFF);
+						ra_o_address <= calculateAddress(unsigned(ADDOFF));
 						ra_o_en      <= '1'   					;
 						ra_sent      <= '1'   					;
 						ra_received  <= '0'   					;
@@ -294,7 +295,7 @@ begin
 
 				when RA_ASK_WZ =>
 					if(ra_wake_up_and_send = '1') then
-						ra_o_address <= calculateAddress(wz_counter);
+						ra_o_address <= calculateAddress(unsigned(wz_counter));
 						ra_o_en      <= '1'   					    ;
 						ra_sent      <= '1'   					    ;
 						ra_received  <= '0'   					    ;
@@ -302,7 +303,7 @@ begin
 			
 				when RA_READ_ADDRESS =>
 					if(ra_sent = '1') then
-						base_address <= i_data;
+						base_address <= unsigned(i_data);
 						ra_o_en      <= '0'   ;
 						ra_sent      <= '0'   ;
 						ra_received  <= '1'   ;
@@ -310,7 +311,7 @@ begin
 
 				when RA_READ_WZ =>
 					if(ra_sent = '1') then
-						wz_address  <= i_data;
+						wz_address  <= unsigned(i_data);
 						ra_o_en     <= '0'   ;
 						ra_sent     <= '0'   ;
 						ra_received <= '1'   ;
