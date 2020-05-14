@@ -95,19 +95,20 @@ architecture rtl of project_reti_logiche is
 
 begin
 	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
-	state_register : process(next_state, i_rst, i_clk)
+	state_register : process(i_rst, i_clk)
 	begin
 		if(i_rst = '1') then
 			current_state <= START_IDLE;
-		elsif(rising_edge(clk)) then
+		elsif(rising_edge(i_clk)) then
 			current_state <= next_state;
 		end if;
 	end process;
 	
-	calc_process : process(i_start, current_state, base_address, wz_address, calc_result, wz_counter)
+	calc_process : process(i_start, current_state)
 		
 		variable completed_verify	: std_logic := '0';	--per la computazione della verifica della working zone
 		variable completed_encoding : std_logic := '0';	--per la codifica del segnale di uscita, sia nel caso NO_WZ sia nel FOUND_WZ
+		constant MAX_OFFSET			: integer	:= 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
 	begin
 		case current_state is
@@ -122,26 +123,26 @@ begin
 					o_en		<= '0';
 					o_we		<= '0';
 					o_done 		<= '0';
-					wz_counter	<= (others => '0');
+					wz_counter	<= "0000";
 				end if;
 				
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
 
-					if(completed_verify = '0') then
+				if(completed_verify = '0') then
 					calc_result <= base_address - wz_address;	--TODO: check this
 						-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
 						-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 					completed_verify := '1';	-- in questo modo si ha a disposizione un intero ciclo di clock per la sottrazione
-					elsif(completed_verify = '1') then
-						if(calc_result <= 3) then	--3 perché è l'offset. TODO: rendi offset una variabile globale (non so come si faccia in vhdl)
-							next_state <= FOUND_WZ_ENCODING;
-							completed_verify := '0';    --serve solo nei casi di reset
-						else
-							completed_verify := '0';
-							next_state <= WZ_READING_STATE;
-						end if; --decisione in base al risultato
-					end if;	--decisione in base a completed_verify
+				elsif(completed_verify = '1') then
+					if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
+						next_state <= FOUND_WZ_ENCODING;
+						completed_verify := '0';    --serve solo nei casi di reset
+					else
+						completed_verify := '0';
+						next_state <= WZ_READING_STATE;
+					end if; --decisione in base al risultato
+				end if;	--decisione in base a completed_verify
 
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
@@ -189,7 +190,7 @@ begin
 	end process;
 
 	--Processi di read address
-	ra_state_register : process( i_clk )
+	ra_state_register : process(i_clk, i_rst)
 	begin
 		
 		--Azioni di reset per i processi di read address vanno qui
@@ -197,7 +198,7 @@ begin
 
 			ra_current_state <= RA_WAIT_FOR_START;
 
-		elsif(current_state = WZ_READING_STATE and rising_edge(i_clk)) then
+		elsif(rising_edge(i_clk) and current_state = WZ_READING_STATE) then
 			
 			ra_current_state <= ra_next_state;		
 
@@ -205,7 +206,7 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process( ra_current_state )
+	ra_next_state_logic : process( ra_current_state, i_start, ra_result_found )
 	begin
 		
 		ra_wake_up_and_send <= '0';
@@ -253,11 +254,11 @@ begin
 				if(ra_result_found = '1') then
 					if(ra_result_success = '1') then
 						ra_next_state <= RA_DONE;
-					elsif(ra_result_faliure = '1') then
+					elsif(ra_result_failure = '1') then
 						if(wz_counter = 7) then
 							ra_next_state <= RA_DONE;
 						else
-							wz_counter <= wz_counter + 1;
+							--wz_counter <= wz_counter + 1; --this is done by calc_process
 							ra_next_state <= RA_ASK_WZ;	
 						end if ;
 					end if;
