@@ -1,3 +1,11 @@
-#ignora i file generati da vivado
+#ignora i file generati da vivado. Probabilmente inutile ma lo lascio
 vivado.*
 
+#ignora le modifiche alle quattro cartelle principali di vivado, così si evita di committare i cambiamenti
+working_zones_project.ip_user_files/
+working_zones_project.cache/
+working_zones_project.sim/
+working_zones_project.hw/
+
+#ignora il file di progetto, semplicemente perche' ho paura si rompa non avendo a disposizione le altre quattro cartelle
+working_zones_project.xpr
