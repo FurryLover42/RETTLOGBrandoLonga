@@ -61,8 +61,12 @@ begin
 			
 	process is	--riscrivi questo per cambiare i segnali
 	begin
+	   reset <= '0';
+	   start <= '0';
+	   wait for 30 ns;
 		reset <= '1';
 		wait for 10 ns;
+		start <= '1';
 		reset <= '0';
 		wait for 123 ns;
 		reset <= '1';

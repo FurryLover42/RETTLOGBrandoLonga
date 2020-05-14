@@ -70,7 +70,7 @@ architecture rtl of project_reti_logiche is
 	--Dichiarazioni per comunicare con operazioni di controllo
 	signal ra_result_found   : std_logic := '0'; --Alzare a 1 se l'operazione di controllo è terminata
 	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
-	signal ra_result_faliure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato negativo
+	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato negativo
 
 	--Dichiarazioni per comunicare con RAM
 	signal ra_sent             : std_logic := '0';              --Alzare a 1 quando l'indirizzo è stato richiesto alla RAM
