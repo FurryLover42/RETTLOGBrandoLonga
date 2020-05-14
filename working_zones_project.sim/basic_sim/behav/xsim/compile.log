@@ -1,0 +1,4 @@
+INFO: [VRFC 10-163] Analyzing VHDL file "/home/steve/Desktop/program/github_polimi/RETTLOGBrandoLonga/10535602_10531144.vhd" into library xil_defaultlib
+INFO: [VRFC 10-307] analyzing entity project_reti_logiche
+INFO: [VRFC 10-163] Analyzing VHDL file "/home/steve/Desktop/program/github_polimi/RETTLOGBrandoLonga/minitest_10535602_10531144.vhd" into library xil_defaultlib
+INFO: [VRFC 10-307] analyzing entity minitest
