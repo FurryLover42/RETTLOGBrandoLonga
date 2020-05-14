@@ -1,0 +1,7 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../10535602_10531144.vhd" \
+"../../../../minitest_10535602_10531144.vhd" \
+
+# Do not sort compile order
+nosort

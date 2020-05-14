@@ -1,4 +1,3 @@
 #ignora i file generati da vivado
 vivado.*
-#ignora la directory contenente i log del progetto
-working_zone_project/
+

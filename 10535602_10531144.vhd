@@ -123,6 +123,7 @@ begin
 					o_en		<= '0';
 					o_we		<= '0';
 					o_done 		<= '0';
+					o_data		<= (others => '0');
 					wz_counter	<= "0000";
 				end if;
 				
