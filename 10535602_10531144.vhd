@@ -72,13 +72,6 @@ architecture rtl of project_reti_logiche is
 	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
 	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato negativo
 
-	--Dichiarazioni per comunicare con RAM
-	signal ra_sent             : std_logic := '0';              --Alzare a 1 quando l'indirizzo è stato richiesto alla RAM
-	signal ra_received         : std_logic := '0';              --Alzare a 1 quando si ha ricevuto risposta dalla RAM
-	signal ra_wake_up_and_send : std_logic := '0';              --Alzare a 1 quando si deve inviare messaggi alla RAM
-	signal ra_o_address        : std_logic_vector(15 downto 0); --indirizzo da mandare al processo di comunicazione con RAM
-	signal ra_o_en             : std_logic := '0';              --Alzare a 1 per chiedere al processo di comunicazione con RAM di comunicare con la RAM
-
 	--Dichiarazioni costanti
 	constant BASEADD    : unsigned(15 downto 0) := x"0000";
 	constant BASEOFFSET : integer := 8;
@@ -191,7 +184,7 @@ begin
 	end process;
 
 	--Processi di read address
-	ra_state_register : process(i_clk, i_rst, current_state)
+	ra_state_register : process( i_clk, i_rst )
 	begin
 		
 		--Azioni di reset per i processi di read address vanno qui
@@ -207,49 +200,29 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process( ra_current_state, i_start, ra_result_found, ra_sent, ra_received, ra_result_success, ra_result_failure, wz_counter)
+	ra_next_state_logic : process( ra_current_state )
 	begin
-		
-		ra_wake_up_and_send <= '0';
 
 		case(ra_current_state) is
 
 			when RA_WAIT_FOR_START =>
 				if (i_start = '1') then
-					ra_next_state       <= RA_ASK_ADDRESS;
-					ra_wake_up_and_send <= '1'           ;
+					ra_next_state <= RA_ASK_ADDRESS;
 				else
 					ra_next_state <= RA_WAIT_FOR_START;
 				end if ;
 			
 			when RA_ASK_ADDRESS =>
-				if(ra_sent = '1') then
-					ra_next_state <= RA_READ_ADDRESS;
-				else
-					ra_next_state <= RA_ASK_ADDRESS;	
-				end if ;
+				ra_next_state <= RA_READ_ADDRESS;;
 
 			when RA_READ_ADDRESS =>
-				if(ra_received = '1') then
-					ra_next_state       <= RA_ASK_WZ;	
-					ra_wake_up_and_send <= '1'      ;
-				else
-					ra_next_state <= RA_READ_ADDRESS;		
-				end if ;
+				ra_next_state <= RA_ASK_WZ;	
 
 			when RA_ASK_WZ =>
-				if(ra_sent = '1') then
-					ra_next_state <= RA_READ_WZ;
-				else
-					ra_next_state <= RA_ASK_WZ;	
-				end if ;
+				ra_next_state <= RA_READ_WZ;
 
 			when RA_READ_WZ =>
-				if(ra_received = '1') then
-					ra_next_state <= RA_WAIT_FOR_RESULTS;
-				else
-					ra_next_state <= RA_READ_WZ;		
-				end if ;
+				ra_next_state <= RA_WAIT_FOR_RESULTS;
 
 			when RA_WAIT_FOR_RESULTS =>
 				if(ra_result_found = '1') then
@@ -274,76 +247,41 @@ begin
 
 	end process ; -- ra_next_state_logic
 
-	ra_speak_to_RAM : process( ra_wake_up_and_send, i_data, i_rst, ra_current_state, wz_counter, ra_sent)
+	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
+	speak_with_RAM : process( i_clk )
 	begin
+
+		o_en <= '0';
+		o_we <= '0';
+		o_address <= x"0000";
 		
-		if(i_rst = '1') then
-			ra_o_address <= x"0000";
-			ra_o_en      <= '0'    ;
-			ra_sent      <= '0'    ;
-			ra_received  <= '0'    ;
-			base_address <= x"00"  ;
-			wz_address   <= x"00"  ;
-		else
-			case( ra_current_state ) is
-			
-				when RA_ASK_ADDRESS =>
-					if(ra_wake_up_and_send = '1') then
-						ra_o_address <= calculateAddress(unsigned(ADDOFF));
-						ra_o_en      <= '1'   					;
-						ra_sent      <= '1'   					;
-						ra_received  <= '0'   					;
-					end if;
-
-				when RA_ASK_WZ =>
-					if(ra_wake_up_and_send = '1') then
-						ra_o_address <= calculateAddress(unsigned(wz_counter));
-						ra_o_en      <= '1'   					    ;
-						ra_sent      <= '1'   					    ;
-						ra_received  <= '0'   					    ;
-					end if;
-			
-				when RA_READ_ADDRESS =>
-					if(ra_sent = '1') then
-						base_address <= unsigned(i_data);
-						ra_o_en      <= '0'   ;
-						ra_sent      <= '0'   ;
-						ra_received  <= '1'   ;
-					end if;
-
-				when RA_READ_WZ =>
-					if(ra_sent = '1') then
-						wz_address  <= unsigned(i_data);
-						ra_o_en     <= '0'   ;
-						ra_sent     <= '0'   ;
-						ra_received <= '1'   ;
-					end if;
-
-				when others =>
-					ra_sent     <= '0';
-					ra_received <= '0';
-
-			end case ;
-		end if;
-
-	end process ; -- ra_speak_to_RAM
-
-
-	--Use this process to speak directly to the RAM
-	speak_to_RAM : process( i_clk, current_state, ra_o_address, ra_o_en)
-	begin
-
 		case( current_state ) is
 		
 			when WZ_READING_STATE =>
-				o_address <= ra_o_address;
-				o_en      <= ra_o_en;
+				case( ra_current_state ) is
+				
+					when RA_ASK_ADDRESS =>
+						o_address <= calculateAddress(ADDOFF);
+						o_en 	  <= '1';
+				
+					when RA_ASK_WZ =>
+						o_address <= calculateAddress(wz_counter);
+						o_en 	  <= '1';
+
+					when RA_READ_ADDRESS =>
+						base_address <= i_data;
+
+					when RA_READ_WZ =>
+						wz_address <= i_data;
+
+					when others =>
+
+				end case ;
 		
 			when others =>
 		
 		end case ;
 
-
-	end process ; -- speak_to_RAM
-
+	end process ; -- read_from_RAM
+	
 end rtl;
