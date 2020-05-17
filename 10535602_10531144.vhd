@@ -112,9 +112,6 @@ begin
 					next_state <= WZ_READING_STATE;
 				else
 					--reset dei segnali
-					--TODO: non so se sia meglio eseguire qui il reset dei segnali, inizializzarne già qualcuno all'inizio o non inizializzarli affatto
-					o_en		<= '0';
-					o_we		<= '0';
 					o_done 		<= '0';
 					o_data		<= (others => '0');
 					wz_counter	<= "0000";
@@ -131,11 +128,14 @@ begin
 				elsif(completed_verify = '1') then
 					if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 						next_state <= FOUND_WZ_ENCODING;
+						ra_result_success <= '1';
 						completed_verify := '0';    --serve solo nei casi di reset
 					else
 						completed_verify := '0';
+						ra_result_failure <= '1';
 						next_state <= WZ_READING_STATE;
 					end if; --decisione in base al risultato
+					ra_result_found <= '1';
 				end if;	--decisione in base a completed_verify
 
 
@@ -184,7 +184,7 @@ begin
 	end process;
 
 	--Processi di read address
-	ra_state_register : process( i_clk, i_rst )
+	ra_state_register : process( i_clk, i_rst, i_start, current_state)
 	begin
 		
 		--Azioni di reset per i processi di read address vanno qui
@@ -200,7 +200,7 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process( ra_current_state )
+	ra_next_state_logic : process(ra_current_state)
 	begin
 
 		case(ra_current_state) is
@@ -213,7 +213,7 @@ begin
 				end if ;
 			
 			when RA_ASK_ADDRESS =>
-				ra_next_state <= RA_READ_ADDRESS;;
+				ra_next_state <= RA_READ_ADDRESS;
 
 			when RA_READ_ADDRESS =>
 				ra_next_state <= RA_ASK_WZ;	
@@ -248,16 +248,21 @@ begin
 	end process ; -- ra_next_state_logic
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk )
+	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data)
 	begin
-
-		o_en <= '0';
-		o_we <= '0';
-		o_address <= x"0000";
-		
+	
 		case( current_state ) is
 		
+			when START_IDLE =>
+				o_en <= '0';
+				o_we <= '0';
+				o_address <= x"0000";
+		
 			when WZ_READING_STATE =>
+				o_en <= '0';
+				o_we <= '0';
+				o_address <= x"0000";
+				
 				case( ra_current_state ) is
 				
 					when RA_ASK_ADDRESS =>
@@ -269,10 +274,10 @@ begin
 						o_en 	  <= '1';
 
 					when RA_READ_ADDRESS =>
-						base_address <= i_data;
+						base_address <= unsigned(i_data);
 
 					when RA_READ_WZ =>
-						wz_address <= i_data;
+						wz_address <= unsigned(i_data);
 
 					when others =>
 
