@@ -77,6 +77,10 @@ architecture rtl of project_reti_logiche is
 	constant BASEOFFSET : integer := 8;
 	constant ADDOFF     : unsigned(3 downto 0) := x"8";
 
+	--Utilizzo RAM
+	--Dichiarazioni constanti
+	constant RESULTOFF : unsigned(3 downto 0) := x"9";
+
 	--Dichiarazioni funzioni
 	function calculateAddress(offset :unsigned)
 	return std_logic_vector is
@@ -282,7 +286,13 @@ begin
 					when others =>
 
 				end case ;
-		
+			
+			when WRITING_STATE =>
+				o_en      <= '1';
+				o_we      <= '1';
+				o_address <= calculateAddress(RESULTOFF);
+				o_data    <= encoded_res;
+
 			when others =>
 		
 		end case ;
