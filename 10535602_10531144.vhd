@@ -93,7 +93,7 @@ architecture rtl of project_reti_logiche is
 
 begin
 	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
-	state_register : process(i_rst, i_clk, base_address, wz_address, calc_result, wz_counter, current_state)
+	state_register : process(i_rst, i_clk)
 	begin
 		if(i_rst = '1') then
 			current_state <= START_IDLE;
@@ -138,6 +138,7 @@ begin
 
 				else
 					next_state <= WZ_READING_STATE;
+					wz_counter <= wz_counter + 1;
 					ra_result_failure <= '1';
 				end if; --decisione in base al risultato
 
@@ -186,7 +187,7 @@ begin
 	end process;
 
 	--Processi di read address
-	ra_state_register : process( i_clk, i_rst, i_start, current_state)
+	ra_state_register : process( i_clk, i_rst )
 	begin
 		
 		--Azioni di reset per i processi di read address vanno qui
@@ -196,7 +197,7 @@ begin
 
 		elsif(rising_edge(i_clk) and current_state = WZ_READING_STATE) then
 			
-			ra_current_state <= ra_next_state;		
+			ra_current_state <= ra_next_state;
 
 		end if ;
 
@@ -250,7 +251,7 @@ begin
 	end process ; -- ra_next_state_logic
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data)
+	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data )
 	begin
 	
 		case( current_state ) is
