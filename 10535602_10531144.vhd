@@ -35,7 +35,8 @@ architecture rtl of project_reti_logiche is
 	type state_type is (
 		START_IDLE,			--si va in questo stato in seguito al segnale di reset a prescindere dallo stato attuale, e ci si resta finché start = 0
 		WZ_READING_STATE,	--legge la i-esima working zone e va in WZ_CALC_STATE. Se invece non ci sono altre wz da leggere, va in NO_WZ_ENCODING
-		WZ_CALC_STATE,		--controlla se l'address fa parte della i-esima wz. Se sì va in FOUND_WZ_ENCODING, se no count++ e va in WZ_READING_STATE
+		WZ_CALC_STATE,		--calcola se l'address appartiene alla working zone corrente
+		WZ_DECISION,		--in base a quanto fatto da WZ_CALC_STATE decide se passare all'encoding o richiedere una nuova working zone
 		FOUND_WZ_ENCODING,	--codifica la parola da scrivere nella ram in encoded_res, quindi va in writing state
 		NO_WZ_ENCODING,		--codifica la parola da scrivere nella ram in encoded_res, quindi va in writing state. WHATIF: i due stati possono essere uniti
 		WRITING_STATE,		--scrive nella ram il contenuto di encoded_res, quindi va in END_IDLE
@@ -103,7 +104,6 @@ begin
 	
 	calc_process : process(i_start, current_state, base_address, wz_address, calc_result, wz_counter)
 		
-		variable completed_verify	: std_logic := '0';	--per la computazione della verifica della working zone
 		variable completed_encoding : std_logic := '0';	--per la codifica del segnale di uscita, sia nel caso NO_WZ sia nel FOUND_WZ
 		constant MAX_OFFSET			: integer	:= 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -124,24 +124,22 @@ begin
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
 
-				if(completed_verify = '0') then
-					calc_result <= base_address - wz_address;	--TODO: check this
-						-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
-						-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
-					completed_verify := '1';	-- in questo modo si ha a disposizione un intero ciclo di clock per la sottrazione
-				elsif(completed_verify = '1') then
-					if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
-						next_state <= FOUND_WZ_ENCODING;
-						ra_result_success <= '1';
-						completed_verify := '0';    --serve solo nei casi di reset
-					else
-						completed_verify := '0';
-						ra_result_failure <= '1';
-						next_state <= WZ_READING_STATE;
-					end if; --decisione in base al risultato
-					ra_result_found <= '1';
-				end if;	--decisione in base a completed_verify
+				calc_result <= base_address - wz_address;	--TODO: check this
+					-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
+					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
+				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 
+			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
+			when WZ_DECISION =>
+				
+				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
+					next_state <= FOUND_WZ_ENCODING;
+					ra_result_success <= '1';
+
+				else
+					next_state <= WZ_READING_STATE;
+					ra_result_failure <= '1';
+				end if; --decisione in base al risultato
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>

@@ -1,5 +1,8 @@
 #ignora i file generati da vivado. Probabilmente inutile ma lo lascio
 vivado.*
+#ignora i file temporanei generati da vivado a runtime
+.Xil/
+*.str
 #ignora i file di log e jou, anche questo probabilmente inutile ma non voglio correre rischi
 *.log
 *.jou
