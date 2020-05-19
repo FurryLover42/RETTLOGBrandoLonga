@@ -6,6 +6,8 @@ vivado.*
 #ignora i file di log e jou, anche questo probabilmente inutile ma non voglio correre rischi
 *.log
 *.jou
+#ignora altri tipi di cartelle e file di report
+working_zones_project.runs/
 #ignora la cartella che uso in locale per le simulazioni
 log_and_jou/
 #cartella nascosta di vivado

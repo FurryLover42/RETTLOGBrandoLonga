@@ -71,7 +71,7 @@ architecture rtl of project_reti_logiche is
 	--Dichiarazioni per comunicare con operazioni di controllo
 	signal ra_result_found   : std_logic := '0'; --Alzare a 1 se l'operazione di controllo è terminata
 	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
-	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato negativo
+	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo ha dato esito negativo
 
 	--Dichiarazioni costanti
 	constant BASEADD    : unsigned(15 downto 0) := x"0000";
@@ -101,11 +101,11 @@ begin
 			current_state <= next_state;
 		end if;
 	end process;
-	
-	calc_process : process(i_start, current_state, base_address, wz_address, calc_result, wz_counter)
-		
-		variable completed_encoding : std_logic := '0';	--per la codifica del segnale di uscita, sia nel caso NO_WZ sia nel FOUND_WZ
-		constant MAX_OFFSET			: integer	:= 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
+
+	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
+	calc_process : process(current_state, i_start)
+
+		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
 	begin
 		case current_state is
@@ -119,6 +119,7 @@ begin
 					o_done 		<= '0';
 					o_data		<= (others => '0');
 					wz_counter	<= "0000";
+					next_state <= START_IDLE;
 				end if;
 				
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
@@ -128,6 +129,8 @@ begin
 					-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
 					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
+				ra_result_failure <= '0';
+				ra_result_success <= '0';
 
 			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
 			when WZ_DECISION =>
@@ -145,45 +148,36 @@ begin
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
 
-					if(completed_encoding = '0') then
-						encoded_res(7) <= '0';
-						encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
-						completed_encoding := '1';
-					elsif(completed_encoding = '1') then
-						next_state <= WRITING_STATE;
-						completed_encoding := '0';
-					end if; --decisione in base a completed_encoding					
-
+				encoded_res(7) <= '0';
+				encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
+				next_state <= WRITING_STATE;					
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
 
-					if(completed_encoding = '0') then
-					encoded_res(7) <= '1';
-						encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
-						case calc_result(1 downto 0) is
-							when "00" =>
-								encoded_res(3 downto 0) <= "0001";
-							when "01" =>
-								encoded_res(3 downto 0) <= "0010";
-							when "10" =>
-								encoded_res(3 downto 0) <= "0100";
-							when "11" =>
-								encoded_res(3 downto 0) <= "1000";
-							when others => --condizione impossibile
-								encoded_res(3 downto 0) <= "XXXX";
-						end case;
-						completed_encoding := '1';
-					elsif(completed_encoding = '1') then
-						next_state <= WRITING_STATE;
-						completed_encoding := '0';
-					end if; --decisione in base a completed_encoding					
+				encoded_res(7) <= '1';
+				encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
+
+				case calc_result(1 downto 0) is
+					when "00" =>
+						encoded_res(3 downto 0) <= "0001";
+					when "01" =>
+						encoded_res(3 downto 0) <= "0010";
+					when "10" =>
+						encoded_res(3 downto 0) <= "0100";
+					when "11" =>
+						encoded_res(3 downto 0) <= "1000";
+					when others => --condizione impossibile
+						encoded_res(3 downto 0) <= "XXXX";
+				end case;
+				next_state <= WRITING_STATE;				
 
 					
 			when others =>
-				--not programmed yet, add here the other states, but leave "when others =>" or the compiler will complain
-			end case; --decisione in base allo stato
+				-- gli altri stati possibili sono gestiti dal processo speak_with_ram
+
+			end case; --case basato sullo stato corrente
 	end process;
 
 	--Processi di read address
@@ -203,7 +197,9 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process(ra_current_state)
+	ra_next_state_logic : process(ra_current_state, i_start)
+		--i_start deve essere nella sensivity list, altrimenti il processo rischia di non essere triggerato
+		--	quando RA_WAIT_FOR_START è in funzione da più di un ciclo di clock (perché il suo valore non varierebbe)
 	begin
 
 		case(ra_current_state) is
@@ -232,11 +228,11 @@ begin
 					if(ra_result_success = '1') then
 						ra_next_state <= RA_DONE;
 					elsif(ra_result_failure = '1') then
-						if(wz_counter = 7) then
+						if(wz_counter = 7) then	--hai controllato tutte le working zone
 							ra_next_state <= RA_DONE;
 						else
-							--wz_counter <= wz_counter + 1; --this is done by calc_process
-							ra_next_state <= RA_ASK_WZ;	
+							--wz_counter <= wz_counter + 1; --questo viene fatto dal calc_process
+							ra_next_state <= RA_ASK_WZ;
 						end if ;
 					end if;
 				else
