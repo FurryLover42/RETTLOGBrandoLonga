@@ -45,7 +45,7 @@ architecture rtl of project_reti_logiche is
 	); --end state_type declaration
 	
 	--FSM signals
-	signal current_state	: state_type;				      --stato attuale
+	signal current_state	: state_type := START_IDLE;	      --stato attuale
 	signal next_state		: state_type;				      --prossimo stato della FSM
 	signal wz_counter		: unsigned(3 downto 0) := "0000"; --contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
 	--other internal signals
@@ -112,13 +112,16 @@ begin
 			
 			-- rimane in questo stato fino al segnale di start
 			when START_IDLE =>
+				--reset dei segnali
+				wz_counter			<= "0000";
+				o_done				<= '0';
+				ra_result_success	<= '0';
+				ra_result_failure	<= '0';
+				ra_result_found		<= '0';
+
 				if(i_start = '1') then
 					next_state <= WZ_READING_STATE;
 				else
-					--reset dei segnali
-					o_done 		<= '0';
-					o_data		<= (others => '0');
-					wz_counter	<= "0000";
 					next_state <= START_IDLE;
 				end if;
 				
@@ -144,6 +147,7 @@ begin
 					wz_counter <= wz_counter + 1;
 					ra_result_failure <= '1';
 				end if; --decisione in base al risultato
+				ra_result_found <= '1'; --comunque sia questo segnale va alzato
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
@@ -171,8 +175,17 @@ begin
 					when others => --condizione impossibile
 						encoded_res(3 downto 0) <= "XXXX";
 				end case;
-				next_state <= WRITING_STATE;				
+				next_state <= WRITING_STATE;
 
+			when END_IDLE =>
+				if(i_start <= '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
+					o_done <= '1';
+					next_state <= END_IDLE;
+				elsif(i_start <= '0') then	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
+											--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
+					o_done <= '0';
+					next_state <= START_IDLE;
+				end if;
 					
 			when others =>
 				-- gli altri stati possibili sono gestiti dal processo speak_with_ram
@@ -197,9 +210,8 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process(ra_current_state, i_start)
-		--i_start deve essere nella sensivity list, altrimenti il processo rischia di non essere triggerato
-		--	quando RA_WAIT_FOR_START è in funzione da più di un ciclo di clock (perché il suo valore non varierebbe)
+	ra_next_state_logic : process(ra_current_state, i_start, ra_result_found, ra_result_success, ra_result_failure)
+		--	i_start deve essere nella sensivity list, altrimenti il processo rischia di non essere triggerato quando RA_WAIT_FOR_START è in funzione da più di un ciclo di clock (perché il suo valore non varierebbe)
 	begin
 
 		case(ra_current_state) is
@@ -228,7 +240,7 @@ begin
 					if(ra_result_success = '1') then
 						ra_next_state <= RA_DONE;
 					elsif(ra_result_failure = '1') then
-						if(wz_counter = 7) then	--hai controllato tutte le working zone
+						if(wz_counter = 8) then	--hai controllato tutte le working zone
 							ra_next_state <= RA_DONE;
 						else
 							--wz_counter <= wz_counter + 1; --questo viene fatto dal calc_process
@@ -247,19 +259,19 @@ begin
 	end process ; -- ra_next_state_logic
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data )
+	speak_with_RAM : process( i_clk, current_state, ra_current_state)
 	begin
 	
 		case( current_state ) is
 		
 			when START_IDLE =>
-				o_en <= '0';
-				o_we <= '0';
+				o_en	<= '0';
+				o_we	<= '0';
 				o_address <= x"0000";
 		
 			when WZ_READING_STATE =>
-				o_en <= '0';
-				o_we <= '0';
+				o_en	<= '0';
+				o_we	<= '0';
 				o_address <= x"0000";
 				
 				case( ra_current_state ) is
