@@ -63,6 +63,7 @@ begin
 		o_we		=> write_en,
 		o_data		=> in_data);
 		
+	--Clock
 	clock : process is	--clock process. La specifica ci concede un clock di periodo 100 ns
 	begin
 		clock <= '0';
@@ -71,6 +72,7 @@ begin
 		wait for CLK_WAIT;
 	end process;
 		
+	--RAM
 	ram : process(clock)
 	begin
 		if rising_edge(clock) then
@@ -85,6 +87,7 @@ begin
 		end if;
 	end process;
 
+	--Processo di selezione del test
 	selectExample : process()
 	begin
 		
@@ -111,7 +114,8 @@ begin
 
 	end process ;
 
-	identifier : process(start_test)
+	--Processo di esecuzione di test
+	performTest : process(start_test)
 	begin
 		
 		if(start_test = '1') then
@@ -119,12 +123,12 @@ begin
 			start <= '1';
 
 			wait for done;
-			
+
 			report RAM(9);
 			start <= '0';
 
 		end if;
 
-	end process ; -- identifier
+	end process ;
 
 end architecture sim;
