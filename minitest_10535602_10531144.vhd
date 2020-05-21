@@ -25,17 +25,29 @@ entity minitest is end minitest;
 
 architecture sim of minitest is
 	
-	--input
+	--output
 	signal clock	: std_logic;
 	signal start	: std_logic;
 	signal reset	: std_logic;
-	signal in_data	: std_logic_vector(7 downto 0);
-	--output
-	signal address	: std_logic_vector(15 downto 0);
 	signal out_data	: std_logic_vector(7 downto 0);
+	--input
+	signal address	: std_logic_vector(15 downto 0);
+	signal in_data	: std_logic_vector(7 downto 0);
 	signal enable	: std_logic;
 	signal write_en	: std_logic;
 	signal done		: std_logic;
+
+	--Dichiarazioni per clock
+	constant CLK_WAIT : time := 50 ns;
+
+	--Dichiarazioni simulazione RAM
+	type ram_type is array (65535 downto 0) of std_logic_vector(7 downto 0);
+	signal RAM : ram_type;
+
+	--Dichiarazioni per test
+	constant EXAMPLE    : integer   := 1; 
+	signal   start_test : std_logic := '0';
+
 begin
 	
 	--port mapping
@@ -43,36 +55,76 @@ begin
 		i_clk		=> clock,
 		i_start		=> start,
 		i_rst		=> reset,
-		i_data		=> in_data,
+		i_data		=> out_data,
 
 		o_address	=> address,
 		o_done		=> done,
 		o_en		=> enable,
 		o_we		=> write_en,
-		o_data		=> out_data);
+		o_data		=> in_data);
 		
-	process is	--clock process. La specifica ci concede un clock di periodo 100 ns
+	clock : process is	--clock process. La specifica ci concede un clock di periodo 100 ns
 	begin
 		clock <= '0';
-		wait for 50 ns;
+		wait for CLK_WAIT;
 		clock <= '1';
-		wait for 50 ns;
+		wait for CLK_WAIT;
 	end process;
-			
-	process is	--riscrivi questo per cambiare i segnali
+		
+	ram : process(clock)
 	begin
-	   reset <= '0';
-	   start <= '0';
-	   wait for 30 ns;
-		reset <= '1';
-		wait for 10 ns;
-		start <= '1';
-		reset <= '0';
-		wait for 123 ns;
-		reset <= '1';
-		wait for 94 ns;
-		reset <= '0';
-		wait;
+		if rising_edge(clock) then
+			if enable = '1' then
+				if write_en = '1' then
+					RAM(conv_integer(address)) <= in_data;
+					out_data <= in_data;
+				else
+					out_data <= RAM(conv_integer(address));
+				end if;
+			end if;
+		end if;
 	end process;
+
+	selectExample : process()
+	begin
+		
+		case( EXAMPLE ) is
+		
+			when 1 =>
+			
+			RAM(0) <= 04;
+			RAM(1) <= 13;
+			RAM(2) <= 22;
+			RAM(3) <= 31;
+			RAM(4) <= 37;
+			RAM(5) <= 45;
+			RAM(6) <= 77;
+			RAM(7) <= 91;
+			RAM(8) <= 42;
+			start_test <= '1';
+
+			when others =>
+
+		end case;
+
+		wait;
+
+	end process ;
+
+	identifier : process(start_test)
+	begin
+		
+		if(start_test = '1') then
+
+			start <= '1';
+
+			wait for done;
+			
+			report RAM(9);
+			start <= '0';
+
+		end if;
+
+	end process ; -- identifier
 
 end architecture sim;
