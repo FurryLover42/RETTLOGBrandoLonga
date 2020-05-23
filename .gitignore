@@ -1,5 +1,6 @@
 #ignora i file generati da vivado. Probabilmente inutile ma lo lascio
 vivado.*
+synth_*/
 #ignora i file temporanei generati da vivado a runtime
 .Xil/
 *.str
