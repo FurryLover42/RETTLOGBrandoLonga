@@ -103,7 +103,7 @@ begin
 	end process;
 
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start)
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter)
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -194,7 +194,7 @@ begin
 	end process;
 
 	--Processi di read address
-	ra_state_register : process( i_clk, i_rst )
+	ra_state_register : process( i_clk, i_rst, current_state )
 	begin
 		
 		--Azioni di reset per i processi di read address vanno qui
@@ -210,7 +210,7 @@ begin
 
 	end process ; -- ra_state_register
 
-	ra_next_state_logic : process(ra_current_state, i_start, ra_result_found, ra_result_success, ra_result_failure)
+	ra_next_state_logic : process(ra_current_state, i_start, ra_result_found, ra_result_success, ra_result_failure, wz_counter)
 		--	i_start deve essere nella sensivity list, altrimenti il processo rischia di non essere triggerato quando RA_WAIT_FOR_START è in funzione da più di un ciclo di clock (perché il suo valore non varierebbe)
 	begin
 
@@ -259,7 +259,7 @@ begin
 	end process ; -- ra_next_state_logic
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, ra_current_state)
+	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data, encoded_res)
 	begin
 	
 		case( current_state ) is
