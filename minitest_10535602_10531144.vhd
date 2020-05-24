@@ -64,7 +64,7 @@ begin
 		o_data		=> in_data);
 		
 	--Clock
-	clock : process is	--clock process. La specifica ci concede un clock di periodo 100 ns
+	clock_proc : process is	--clock process. La specifica ci concede un clock di periodo 100 ns
 	begin
 		clock <= '0';
 		wait for CLK_WAIT;
@@ -73,7 +73,7 @@ begin
 	end process;
 		
 	--RAM
-	ram : process(clock)
+	ram_proc : process(clock)
 	begin
 		if rising_edge(clock) then
 			if enable = '1' then
