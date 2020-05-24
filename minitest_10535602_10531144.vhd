@@ -41,12 +41,14 @@ architecture sim of minitest is
 	constant CLK_WAIT : time := 50 ns;
 
 	--Dichiarazioni simulazione RAM
-	type ram_type is array (65535 downto 0) of std_logic_vector(7 downto 0);
+	type ram_type is array (9 downto 0) of std_logic_vector(7 downto 0);
 	signal RAM : ram_type;
 
 	--Dichiarazioni per test
-	constant EXAMPLE    : integer   := 1; 
-	signal   start_test : std_logic := '0';
+	signal number_of_test	: integer   := 1; 
+	signal start_test		: std_logic := '0';
+	
+	constant TOTAL : integer := 1;
 
 begin
 	
@@ -78,33 +80,32 @@ begin
 		if rising_edge(clock) then
 			if enable = '1' then
 				if write_en = '1' then
-					RAM(conv_integer(address)) <= in_data;
+					RAM(to_integer(unsigned(address))) <= std_logic_vector(unsigned(in_data));
 					out_data <= in_data;
 				else
-					out_data <= RAM(conv_integer(address));
+					out_data <= RAM(to_integer(unsigned(address)));
 				end if;
 			end if;
 		end if;
 	end process;
 
 	--Processo di selezione del test
-	selectExample : process()
+	test_select : process is
 	begin
 		
-		case( EXAMPLE ) is
+		case( number_of_test ) is
 		
 			when 1 =>
 			
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 42;
-			start_test <= '1';
+			RAM(0) <= x"04"; -- 04
+			RAM(1) <= x"0d"; -- 13
+			RAM(2) <= x"16"; -- 22
+			RAM(3) <= x"1f"; -- 31
+			RAM(4) <= x"25"; -- 37
+			RAM(5) <= x"2d"; -- 45
+			RAM(6) <= x"4d"; -- 77
+			RAM(7) <= x"5b"; -- 91
+			RAM(8) <= x"2a"; -- 42
 
 			when others =>
 
@@ -115,17 +116,23 @@ begin
 	end process ;
 
 	--Processo di esecuzione di test
-	performTest : process(start_test)
+	test_exec : process is
 	begin
 		
 		if(start_test = '1') then
 
 			start <= '1';
 
-			wait for done;
+			wait until(done = '1');
 
-			report RAM(9);
-			start <= '0';
+			report integer'image(to_integer(unsigned(RAM(9))));
+			
+			if(number_of_test < TOTAL) then
+				number_of_test <= number_of_test + 1;
+				start <= '0';
+			else
+				assert false report "simulation ended";
+			end if;
 
 		end if;
 
