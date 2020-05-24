@@ -41,12 +41,11 @@ architecture sim of minitest is
 	constant CLK_WAIT : time := 50 ns;
 
 	--Dichiarazioni simulazione RAM
-	type ram_type is array (9 downto 0) of std_logic_vector(7 downto 0);
+	type ram_type is array (65535 downto 0) of std_logic_vector(7 downto 0);
 	signal RAM : ram_type;
 
 	--Dichiarazioni per test
 	signal number_of_test	: integer   := 1; 
-	signal start_test		: std_logic := '0';
 	
 	constant TOTAL : integer := 1;
 
@@ -73,6 +72,16 @@ begin
 		clock <= '1';
 		wait for CLK_WAIT;
 	end process;
+	
+	--Reset
+	reset_proc : process
+	begin
+		wait for 220 ns;
+			reset <= '1';
+		wait for 450 ns;
+			reset <= '0';
+		wait;
+	end process;
 		
 	--RAM
 	ram_proc : process(clock)
@@ -90,52 +99,44 @@ begin
 	end process;
 
 	--Processo di selezione del test
-	test_select : process is
+	test_select : process(number_of_test) is
 	begin
 		
 		case( number_of_test ) is
 		
 			when 1 =>
 			
-			RAM(0) <= x"04"; -- 04
-			RAM(1) <= x"0d"; -- 13
-			RAM(2) <= x"16"; -- 22
-			RAM(3) <= x"1f"; -- 31
-			RAM(4) <= x"25"; -- 37
-			RAM(5) <= x"2d"; -- 45
-			RAM(6) <= x"4d"; -- 77
-			RAM(7) <= x"5b"; -- 91
-			RAM(8) <= x"2a"; -- 42
+				RAM(0) <= x"04"; -- 04
+				RAM(1) <= x"0d"; -- 13
+				RAM(2) <= x"16"; -- 22
+				RAM(3) <= x"1f"; -- 31
+				RAM(4) <= x"25"; -- 37
+				RAM(5) <= x"2d"; -- 45
+				RAM(6) <= x"4d"; -- 77
+				RAM(7) <= x"5b"; -- 91
+				RAM(8) <= x"2a"; -- 42
 
 			when others =>
 
 		end case;
 
-		wait;
-
 	end process ;
 
 	--Processo di esecuzione di test
-	test_exec : process is
+	test_exec : process(clock, enable, write_en)
 	begin
-		
-		if(start_test = '1') then
+		start <= '1';
 
-			start <= '1';
-
-			wait until(done = '1');
-
-			report integer'image(to_integer(unsigned(RAM(9))));
-			
-			if(number_of_test < TOTAL) then
-				number_of_test <= number_of_test + 1;
-				start <= '0';
-			else
-				assert false report "simulation ended";
+		if rising_edge(clock) then
+			if enable = '1' then
+				if write_en = '1' then
+					RAM(to_integer(unsigned(address))) <= in_data;
+					out_data <= in_data;
+				else
+					out_data <= RAM(to_integer(unsigned(address)));
+				end if;
 			end if;
-
 		end if;
-
 	end process ;
 
 end architecture sim;

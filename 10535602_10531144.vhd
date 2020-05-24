@@ -134,6 +134,7 @@ begin
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 				ra_result_failure <= '0';
 				ra_result_success <= '0';
+				
 
 			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
 			when WZ_DECISION =>
@@ -141,6 +142,7 @@ begin
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 					next_state <= FOUND_WZ_ENCODING;
 					ra_result_success <= '1';
+					wz_counter <= wz_counter;
 
 				else
 					next_state <= WZ_READING_STATE;
