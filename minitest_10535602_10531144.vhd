@@ -49,6 +49,14 @@ architecture sim of minitest is
 	
 	constant TOTAL : integer := 1;
 
+	--Funzioni
+	function assign(number : integer) return std_logic_vector(7 downto 0) is
+	begin
+
+		return std_logic_vector(to_unsigned(number, 8));
+
+	end function;
+
 begin
 	
 	--port mapping
@@ -107,176 +115,176 @@ begin
 			--Test del caso di fallimento
 			when 1 =>
 			
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 42;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(42);
 			start_test <= '1';
 
 			--Test per ogni caso di successo
 			when 2 =>
 			
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 06;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(06);
 			start_test <= '1';			
 
 			when 3 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 13;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(13);
 			start_test <= '1';
 
 			when 4 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 23;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(23);
 			start_test <= '1';
 
 			when 5 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 33;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(33);
 			start_test <= '1';
 
 			when 6 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 40;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(40);
 			start_test <= '1';
 
 			when 7 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 45;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(45);
 			start_test <= '1';
 
 			when 8 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 78;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(78);
 			start_test <= '1';
 
 			when 9 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 13;
-			RAM(2) <= 22;
-			RAM(3) <= 31;
-			RAM(4) <= 37;
-			RAM(5) <= 45;
-			RAM(6) <= 77;
-			RAM(7) <= 91;
-			RAM(8) <= 93;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(13);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(31);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(91);
+			RAM(8) <= assign(93);
 			start_test <= '1';
 
 			--Test di fallimento wz non crescenti
 			when 10 =>
 
-			RAM(1) <= 04;
-			RAM(3) <= 13;
-			RAM(5) <= 22;
-			RAM(7) <= 31;
-			RAM(2) <= 37;
-			RAM(4) <= 45;
-			RAM(6) <= 77;
-			RAM(0) <= 91;
-			RAM(8) <= 42;
+			RAM(1) <= assign(04);
+			RAM(3) <= assign(13);
+			RAM(5) <= assign(22);
+			RAM(7) <= assign(31);
+			RAM(2) <= assign(37);
+			RAM(4) <= assign(45);
+			RAM(6) <= assign(77);
+			RAM(0) <= assign(91);
+			RAM(8) <= assign(42);
 			start_test <= '1';
 
 			--Test di successo wz non crescenti
 			when 11 =>
 
-			RAM(1) <= 04;
-			RAM(2) <= 13;
-			RAM(4) <= 22;
-			RAM(5) <= 31;
-			RAM(7) <= 37;
-			RAM(0) <= 45;
-			RAM(3) <= 77;
-			RAM(6) <= 91;
-			RAM(8) <= 14;
+			RAM(1) <= assign(04);
+			RAM(2) <= assign(13);
+			RAM(4) <= assign(22);
+			RAM(5) <= assign(31);
+			RAM(7) <= assign(37);
+			RAM(0) <= assign(45);
+			RAM(3) <= assign(77);
+			RAM(6) <= assign(91);
+			RAM(8) <= assign(14);
 			start_test <= '1';
 
 			--Test di fallimento wz ripetute
 			when 12 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 04;
-			RAM(2) <= 22;
-			RAM(3) <= 22;
-			RAM(4) <= 37;
-			RAM(5) <= 37;
-			RAM(6) <= 77;
-			RAM(7) <= 77;
-			RAM(8) <= 42;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(04);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(22);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(37);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(77);
+			RAM(8) <= assign(42);
 			start_test <= '1';
 
 			--Test di successo wz ripetute
 			when 13 =>
 
-			RAM(0) <= 04;
-			RAM(1) <= 04;
-			RAM(2) <= 22;
-			RAM(3) <= 22;
-			RAM(4) <= 37;
-			RAM(5) <= 37;
-			RAM(6) <= 77;
-			RAM(7) <= 77;
-			RAM(8) <= 40;
+			RAM(0) <= assign(04);
+			RAM(1) <= assign(04);
+			RAM(2) <= assign(22);
+			RAM(3) <= assign(22);
+			RAM(4) <= assign(37);
+			RAM(5) <= assign(37);
+			RAM(6) <= assign(77);
+			RAM(7) <= assign(77);
+			RAM(8) <= assign(40);
 			start_test <= '1';
 
 			when others =>
