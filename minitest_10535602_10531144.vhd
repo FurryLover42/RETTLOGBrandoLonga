@@ -43,6 +43,7 @@ architecture sim of minitest is
 	--Dichiarazioni simulazione RAM
 	type ram_type is array (15 downto 0) of std_logic_vector(7 downto 0);
 	signal RAM : ram_type;
+	signal start_test : std_logic := '0';
 
 	--Dichiarazioni per test
 	signal number_of_test	: integer   := 1; 
@@ -50,7 +51,7 @@ architecture sim of minitest is
 	constant TOTAL : integer := 1;
 
 	--Funzioni
-	function assign(number : integer) return std_logic_vector(7 downto 0) is
+	function assign(number : integer) return std_logic_vector is
 	begin
 
 		return std_logic_vector(to_unsigned(number, 8));
@@ -294,9 +295,11 @@ begin
 	end process ;
 
 	--Processo di esecuzione di test
-	test_exec : process(clock, enable, write_en)
+	test_exec : process(clock, enable, write_en, start_test)
 	begin
-		start <= '1';
+		if(start_test = '1') then
+			start <= '1';
+		end if;
 
 		if rising_edge(clock) then
 			if enable = '1' then
