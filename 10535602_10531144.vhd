@@ -103,7 +103,7 @@ begin
 	end process;
 
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter)
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, ra_result_found, encoded_res, ra_result_failure, ra_result_success)
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -118,12 +118,15 @@ begin
 				ra_result_success	<= '0';
 				ra_result_failure	<= '0';
 				ra_result_found		<= '0';
+				calc_result 		<= x"11";
+				encoded_res			<= x"00";
 
 				if(i_start = '1') then
 					next_state <= WZ_READING_STATE;
 				else
 					next_state <= START_IDLE;
 				end if;
+					
 				
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
@@ -134,29 +137,51 @@ begin
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 				ra_result_failure <= '0';
 				ra_result_success <= '0';
+
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				ra_result_found		<= ra_result_found;
+				encoded_res			<= encoded_res;
 				
 
 			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
 			when WZ_DECISION =>
 				
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
-					next_state <= FOUND_WZ_ENCODING;
-					ra_result_success <= '1';
-					wz_counter <= wz_counter;
+					next_state			<= FOUND_WZ_ENCODING;
+					ra_result_success	<= '1';
+					ra_result_failure	<= ra_result_failure;	--avoids inferring latch
+					wz_counter			<= wz_counter;
 
 				else
-					next_state <= WZ_READING_STATE;
-					wz_counter <= wz_counter + 1;
-					ra_result_failure <= '1';
+					next_state 			<= WZ_READING_STATE;
+					wz_counter			<= wz_counter + 1;
+					ra_result_failure	<= '1';
+					ra_result_success	<= ra_result_success;
 				end if; --decisione in base al risultato
 				ra_result_found <= '1'; --comunque sia questo segnale va alzato
+
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				calc_result 		<= calc_result;
+				encoded_res			<= encoded_res;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
 
 				encoded_res(7) <= '0';
 				encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
-				next_state <= WRITING_STATE;					
+				next_state <= WRITING_STATE;
+
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				ra_result_success	<= ra_result_success;
+				ra_result_failure	<= ra_result_failure;
+				ra_result_found		<= ra_result_found;
+				calc_result 		<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
@@ -179,18 +204,42 @@ begin
 				end case;
 				next_state <= WRITING_STATE;
 
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				ra_result_success	<= ra_result_success;
+				ra_result_failure	<= ra_result_failure;
+				ra_result_found		<= ra_result_found;
+				calc_result 		<= calc_result;
+
 			when END_IDLE =>
 				if(i_start <= '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
 					o_done <= '1';
 					next_state <= END_IDLE;
-				elsif(i_start <= '0') then	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
-											--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
+				else	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
+						--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
 					o_done <= '0';
 					next_state <= START_IDLE;
 				end if;
+
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				ra_result_success	<= ra_result_success;
+				ra_result_failure	<= ra_result_failure;
+				ra_result_found		<= ra_result_found;
+				calc_result 		<= calc_result;
+				encoded_res			<= encoded_res;
 					
 			when others =>
 				-- gli altri stati possibili sono gestiti dal processo speak_with_ram
+				--avoiding inferring latches
+				encoded_res			<= encoded_res;
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				ra_result_success	<= ra_result_success;
+				ra_result_failure	<= ra_result_failure;
+				ra_result_found		<= ra_result_found;
+				calc_result 		<= calc_result;
 
 			end case; --case basato sullo stato corrente
 	end process;
