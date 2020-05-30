@@ -49,7 +49,7 @@ architecture sim of minitest is
 	signal start_test : std_logic := '0';
 
 	--Dichiarazioni per test
-	signal number_of_test	: integer   := 1; 
+	signal number_of_test	: integer   := 0; 
 	
 	constant TOTAL : integer := 1;
 
@@ -308,22 +308,13 @@ begin
 	end process ;
 
 	--Processo di esecuzione di test
-	test_exec : process(clock, enable, write_en, start_test)
+	test_exec : process(start_test)
 	begin
 		if(start_test = '1') then
 			start <= '1';
+			number_of_test <= number_of_test+1;
 		end if;
 
-		if rising_edge(clock) then
-			if enable = '1' then
-				if write_en = '1' then
-					RAM(to_integer(unsigned(address))) <= in_data;
-					out_data <= in_data;
-				else
-					out_data <= RAM(to_integer(unsigned(address)));
-				end if;
-			end if;
-		end if;
 	end process ;
 
 end architecture sim;
