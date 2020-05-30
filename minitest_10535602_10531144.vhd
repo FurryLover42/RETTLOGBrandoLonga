@@ -46,7 +46,6 @@ architecture sim of minitest is
 
 	type ram_type is array ((RAMWORDS - 1) downto 0) of std_logic_vector((RAMSIZE - 1) downto 0);
 	signal RAM : ram_type;
-	signal start_test : std_logic := '0';
 
 	--Dichiarazioni per test
 	signal number_of_test	: integer   := 0; 
@@ -138,7 +137,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(42);
-			start_test <= '1';
 
 			--Test per ogni caso di successo
 			when 2 =>
@@ -151,8 +149,7 @@ begin
 			RAM(5) <= assign(45);
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
-			RAM(8) <= assign(06);
-			start_test <= '1';			
+			RAM(8) <= assign(06);	
 
 			when 3 =>
 
@@ -165,7 +162,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(13);
-			start_test <= '1';
 
 			when 4 =>
 
@@ -178,7 +174,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(23);
-			start_test <= '1';
 
 			when 5 =>
 
@@ -191,7 +186,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(33);
-			start_test <= '1';
 
 			when 6 =>
 
@@ -204,7 +198,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(40);
-			start_test <= '1';
 
 			when 7 =>
 
@@ -217,7 +210,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(45);
-			start_test <= '1';
 
 			when 8 =>
 
@@ -230,7 +222,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(78);
-			start_test <= '1';
 
 			when 9 =>
 
@@ -243,7 +234,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(91);
 			RAM(8) <= assign(93);
-			start_test <= '1';
 
 			--Test di fallimento wz non crescenti
 			when 10 =>
@@ -257,7 +247,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(0) <= assign(91);
 			RAM(8) <= assign(42);
-			start_test <= '1';
 
 			--Test di successo wz non crescenti
 			when 11 =>
@@ -271,7 +260,6 @@ begin
 			RAM(3) <= assign(77);
 			RAM(6) <= assign(91);
 			RAM(8) <= assign(14);
-			start_test <= '1';
 
 			--Test di fallimento wz ripetute
 			when 12 =>
@@ -285,7 +273,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(77);
 			RAM(8) <= assign(42);
-			start_test <= '1';
 
 			--Test di successo wz ripetute
 			when 13 =>
@@ -299,7 +286,6 @@ begin
 			RAM(6) <= assign(77);
 			RAM(7) <= assign(77);
 			RAM(8) <= assign(40);
-			start_test <= '1';
 
 			when others =>
 
@@ -308,12 +294,16 @@ begin
 	end process ;
 
 	--Processo di esecuzione di test
-	test_exec : process(start_test)
+	test_exec : process()
 	begin
-		if(start_test = '1') then
-			start <= '1';
-			number_of_test <= number_of_test+1;
-		end if;
+		start <= '1';
+		number_of_test <= number_of_test + 1;
+
+		wait on done;
+
+		report RAM(9);
+
+		wait;
 
 	end process ;
 
