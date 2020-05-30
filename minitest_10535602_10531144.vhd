@@ -120,15 +120,15 @@ begin
 	end process;
 
 	--Processo di selezione del test
-	test_select : process(number_of_test) is
+	test_select : process(number_of_test, clock) is
 	begin
-		
+		report "trace 1: " & integer'image(number_of_test);
 		case( number_of_test ) is
 		
 			--Test del caso di fallimento
 			when 1 =>
 			
-			RAM(0) <= assign(04);
+			RAM(0) <= x"04";
 			RAM(1) <= assign(13);
 			RAM(2) <= assign(22);
 			RAM(3) <= assign(31);
@@ -294,14 +294,14 @@ begin
 	end process ;
 
 	--Processo di esecuzione di test
-	test_exec : process()
+	test_exec : process
 	begin
 		start <= '1';
 		number_of_test <= number_of_test + 1;
 
-		wait on done;
+		wait until done = '1';
 
-		report RAM(9);
+		report "result: " & integer'image(to_integer(unsigned(RAM(9))));
 
 		wait;
 
