@@ -41,7 +41,10 @@ architecture sim of minitest is
 	constant CLK_WAIT : time := 50 ns;
 
 	--Dichiarazioni simulazione RAM
-	type ram_type is array (15 downto 0) of std_logic_vector(7 downto 0);
+	constant RAMWORDS : integer := 16;
+	constant RAMSIZE  : integer := 8;
+
+	type ram_type is array ((RAMWORDS - 1) downto 0) of std_logic_vector((RAMSIZE - 1) downto 0);
 	signal RAM : ram_type;
 	signal start_test : std_logic := '0';
 
@@ -51,10 +54,20 @@ architecture sim of minitest is
 	constant TOTAL : integer := 1;
 
 	--Funzioni
+	--Converte interi in std_logic_vectors
 	function assign(number : integer) return std_logic_vector is
 	begin
 
 		return std_logic_vector(to_unsigned(number, 8));
+
+	end function;
+
+	--Converte gli indirizzi di RAM bit-by-bit in posizioni dell'array
+	--La comunicazione avviene parola per parola quindi ogni indirizzo non multiplo di 8 viene arrotondato per difetto alla precedente parola
+	function convert_to_RAM_position(number : std_logic_vector) return integer is
+	begin
+
+		return to_integer(unsigned(number)) / 8;
 
 	end function;
 
@@ -98,10 +111,10 @@ begin
 		if rising_edge(clock) then
 			if enable = '1' then
 				if write_en = '1' then
-					RAM(to_integer(unsigned(address))) <= std_logic_vector(unsigned(in_data));
+					RAM(convert_to_RAM_position(address)) <= std_logic_vector(unsigned(in_data));
 					out_data <= in_data;
 				else
-					out_data <= RAM(to_integer(unsigned(address)));
+					out_data <= RAM(convert_to_RAM_position(address));
 				end if;
 			end if;
 		end if;
