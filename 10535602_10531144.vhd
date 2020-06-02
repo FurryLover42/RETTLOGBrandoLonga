@@ -130,7 +130,9 @@ begin
 			
 			
 			when WZ_READING_STATE =>
-				ra_result_found <= '0';
+				ra_result_found		<= '0';
+				ra_result_success	<= '0';
+				ra_result_failure	<= '0';
 				
 				if(ra_read_completed = '1') then
 					next_state <= WZ_CALC_STATE;
@@ -141,8 +143,6 @@ begin
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
-				ra_result_success	<= ra_result_success;
-				ra_result_failure	<= ra_result_failure;
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;
 									
@@ -170,14 +170,14 @@ begin
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 					next_state			<= FOUND_WZ_ENCODING;
 					ra_result_success	<= '1';
-					ra_result_failure	<= ra_result_failure;	--avoids inferring latch
+					ra_result_failure	<= '0';
 					wz_counter			<= wz_counter;
 
 				else
 					next_state 			<= WZ_READING_STATE;
 					wz_counter			<= wz_counter + 1;
 					ra_result_failure	<= '1';
-					ra_result_success	<= ra_result_success;
+					ra_result_success	<= '0';
 				end if; --decisione in base al risultato
 				ra_result_found <= '1'; --comunque sia questo segnale va alzato
 
@@ -272,10 +272,11 @@ begin
 
 			ra_current_state <= RA_WAIT_FOR_START;
 
-		elsif(rising_edge(i_clk) and current_state = WZ_READING_STATE) then
+		elsif(rising_edge(i_clk)) then
 			
-			ra_current_state <= ra_next_state;
-
+			if current_state = WZ_READING_STATE then
+				ra_current_state <= ra_next_state;
+			end if;
 		end if ;
 
 	end process ; -- ra_state_register
@@ -339,7 +340,7 @@ begin
 				o_we	<= '0';
 				o_address <= x"0000";
 			
-			when WZ_DECISION =>
+			when WZ_CALC_STATE =>
 				o_en	<= '0';
 				o_we	<= '0';
 				o_address <= x"0000";
