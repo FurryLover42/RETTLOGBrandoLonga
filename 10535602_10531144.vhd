@@ -72,6 +72,7 @@ architecture rtl of project_reti_logiche is
 	signal ra_result_found   : std_logic := '0'; --Alzare a 1 se l'operazione di controllo è terminata
 	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
 	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo ha dato esito negativo
+	signal ra_read_completed : std_logic := '0'; --Alzare a 1 una volta finito il processo di lettura di una working zone
 
 	--Dichiarazioni costanti
 	constant BASEADD    : unsigned(15 downto 0) := x"0000";
@@ -103,7 +104,7 @@ begin
 	end process;
 
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, ra_result_found, encoded_res, ra_result_failure, ra_result_success)
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, ra_result_found, encoded_res, ra_result_failure, ra_result_success, ra_read_completed)
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -126,7 +127,25 @@ begin
 				else
 					next_state <= START_IDLE;
 				end if;
-					
+			
+			
+			when WZ_READING_STATE =>
+				ra_result_found <= '0';
+				
+				if(ra_read_completed = '1') then
+					next_state <= WZ_CALC_STATE;
+				else
+					next_state <= WZ_READING_STATE;
+				end if;
+				
+				--avoiding inferring latches
+				wz_counter 			<= wz_counter;
+				o_done 				<= '0';
+				ra_result_success	<= ra_result_success;
+				ra_result_failure	<= ra_result_failure;
+				calc_result 		<= calc_result;
+				encoded_res			<= encoded_res;
+									
 				
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
@@ -186,6 +205,7 @@ begin
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
+				ra_result_found <= '0';
 
 				encoded_res(7) <= '1';
 				encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
@@ -209,7 +229,6 @@ begin
 				o_done 				<= '0';
 				ra_result_success	<= ra_result_success;
 				ra_result_failure	<= ra_result_failure;
-				ra_result_found		<= ra_result_found;
 				calc_result 		<= calc_result;
 
 			when END_IDLE =>
@@ -319,6 +338,12 @@ begin
 				o_en	<= '0';
 				o_we	<= '0';
 				o_address <= x"0000";
+			
+			when WZ_DECISION =>
+				o_en	<= '0';
+				o_we	<= '0';
+				o_address <= x"0000";
+				ra_read_completed <= '0';
 		
 			when WZ_READING_STATE =>
 				o_en	<= '0';
@@ -340,6 +365,9 @@ begin
 
 					when RA_READ_WZ =>
 						wz_address <= unsigned(i_data);
+					
+					when RA_WAIT_FOR_RESULTS =>
+						ra_read_completed <= '1'; --triggera il calc_process
 
 					when others =>
 

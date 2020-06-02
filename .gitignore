@@ -22,3 +22,7 @@ working_zones_project.hw/
 
 #ignora il file di progetto, semplicemente perche' ho paura si rompa non avendo a disposizione le altre quattro cartelle
 working_zones_project.xpr
+
+#ignora i wcfg tranne quello principale
+*.wcfg
+!minitest_behav.wcfg
