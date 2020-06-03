@@ -34,6 +34,9 @@ architecture rtl of project_reti_logiche is
 	--enumerazione degli stati della macchina. Per ora i nomi sono temporanei in attesa di nomi migliori, ma possiamo anche fregarcene e spiegare nella documentazione
 	type state_type is (
 		START_IDLE,			--si va in questo stato in seguito al segnale di reset a prescindere dallo stato attuale, e ci si resta finché start = 0
+		ADD_ASK_STATE,      --richiede l'indirizzo da codificare alla RAM
+		ADD_READING_STATE,  --legge l'indirizzo da codificare dalla RAM
+		WZ_ASK_STATE,		--richiede l'i-esima wz alla RAM
 		WZ_READING_STATE,	--legge la i-esima working zone e va in WZ_CALC_STATE. Se invece non ci sono altre wz da leggere, va in NO_WZ_ENCODING
 		WZ_CALC_STATE,		--calcola se l'address appartiene alla working zone corrente
 		WZ_DECISION,		--in base a quanto fatto da WZ_CALC_STATE decide se passare all'encoding o richiedere una nuova working zone
@@ -47,32 +50,12 @@ architecture rtl of project_reti_logiche is
 	--FSM signals
 	signal current_state	: state_type := START_IDLE;	      --stato attuale
 	signal next_state		: state_type;				      --prossimo stato della FSM
-	signal wz_counter		: unsigned(3 downto 0) := "0000"; --contatore della working zone considerata (da 0 a 7, più bit di overflow). USE THIS
+	signal wz_counter		: unsigned(3 downto 0) := "0000"; --contatore della working zone considerata (da 0 a 7, più bit di overflow). 
 	--other internal signals
-	signal base_address		: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare USE THIS
-	signal wz_address		: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento USE THIS
-	signal calc_result		: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta USE THIS
+	signal base_address		: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare 
+	signal wz_address		: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento 
+	signal calc_result		: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta
 	signal encoded_res		: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
-
-	--Dichiarazioni per Read Address
-	--Dichiarazioni per la sub-FSM
-	type t_ra_state is (
-		RA_WAIT_FOR_START,   --Aspetta segnale i_start
-		RA_ASK_ADDRESS,      --Richiedi indirizzo a RAM
-		RA_READ_ADDRESS,     --Leggi indirizzo da RAM
-		RA_ASK_WZ,           --Richiedi indirizzo base WZ a RAM
-		RA_READ_WZ,          --Leggi indirizzo base WZ da RAM
-		RA_WAIT_FOR_RESULTS, --Aspetta che processo di elaborazione dia successo o fallimento
-		RA_DONE              --My work here is done
-	);
-	signal ra_current_state  : t_ra_state := RA_WAIT_FOR_START; --Stato attuale della sub-FSM
-	signal ra_next_state     : t_ra_state;                      --Stato prossimo della sub-FSM
-
-	--Dichiarazioni per comunicare con operazioni di controllo
-	signal ra_result_found   : std_logic := '0'; --Alzare a 1 se l'operazione di controllo è terminata
-	signal ra_result_success : std_logic := '0'; --Alzare a 1 se l'operazione di controllo a trovato risultato positivo
-	signal ra_result_failure : std_logic := '0'; --Alzare a 1 se l'operazione di controllo ha dato esito negativo
-	signal ra_read_completed : std_logic := '0'; --Alzare a 1 una volta finito il processo di lettura di una working zone
 
 	--Dichiarazioni costanti
 	constant BASEADD    : unsigned(15 downto 0) := x"0000";
@@ -104,7 +87,7 @@ begin
 	end process;
 
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, ra_result_found, encoded_res, ra_result_failure, ra_result_success, ra_read_completed)
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, encoded_res) --TODO: Rimuovi segnali che non risvegliano questo processo
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -116,37 +99,37 @@ begin
 				--reset dei segnali
 				wz_counter			<= "0000";
 				o_done				<= '0';
-				ra_result_success	<= '0';
-				ra_result_failure	<= '0';
-				ra_result_found		<= '0';
 				calc_result 		<= x"11";
 				encoded_res			<= x"00";
 
 				if(i_start = '1') then
-					next_state <= WZ_READING_STATE;
+					next_state <= ADD_ASK_STATE;
 				else
 					next_state <= START_IDLE;
 				end if;
-			
-			
-			when WZ_READING_STATE =>
-				ra_result_found		<= '0';
-				ra_result_success	<= '0';
-				ra_result_failure	<= '0';
-				
-				if(ra_read_completed = '1') then
-					next_state <= WZ_CALC_STATE;
-				else
-					next_state <= WZ_READING_STATE;
-				end if;
-				
+
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
-				encoded_res			<= encoded_res;
-									
+				encoded_res			<= encoded_res;					
 				
+			--richiede indirizzo da codificare
+			when ADD_ASK_STATE =>
+				next_state <= ADD_READING_STATE;
+
+			--Legge indirizzo da codificare dalla RAM
+			when ADD_READING_STATE =>
+				next_state <= WZ_ASK_STATE;
+
+			--richiede i-esima wz
+			when WR_ASK_STATE =>
+				next_state <= WZ_READING_STATE;
+
+			--Legge i-esima working zone dalla RAM
+			when WZ_READING_STATE =>
+				next_state <= WZ_CALC_STATE;
+
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
 
@@ -154,13 +137,10 @@ begin
 					-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
 					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
-				ra_result_failure <= '0';
-				ra_result_success <= '0';
 
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
-				ra_result_found		<= ra_result_found;
 				encoded_res			<= encoded_res;
 				
 
@@ -169,17 +149,12 @@ begin
 				
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 					next_state			<= FOUND_WZ_ENCODING;
-					ra_result_success	<= '1';
-					ra_result_failure	<= '0';
 					wz_counter			<= wz_counter;
 
 				else
 					next_state 			<= WZ_READING_STATE;
 					wz_counter			<= wz_counter + 1;
-					ra_result_failure	<= '1';
-					ra_result_success	<= '0';
 				end if; --decisione in base al risultato
-				ra_result_found <= '1'; --comunque sia questo segnale va alzato
 
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
@@ -197,16 +172,11 @@ begin
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
-				ra_result_success	<= ra_result_success;
-				ra_result_failure	<= ra_result_failure;
-				ra_result_found		<= ra_result_found;
 				calc_result 		<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
-				ra_result_found <= '0';
-
 				encoded_res(7) <= '1';
 				encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
 
@@ -227,8 +197,6 @@ begin
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
-				ra_result_success	<= ra_result_success;
-				ra_result_failure	<= ra_result_failure;
 				calc_result 		<= calc_result;
 
 			when END_IDLE =>
@@ -243,9 +211,6 @@ begin
 
 				--avoiding inferring latches
 				wz_counter 			<= wz_counter;
-				ra_result_success	<= ra_result_success;
-				ra_result_failure	<= ra_result_failure;
-				ra_result_found		<= ra_result_found;
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;
 					
@@ -255,125 +220,39 @@ begin
 				encoded_res			<= encoded_res;
 				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
-				ra_result_success	<= ra_result_success;
-				ra_result_failure	<= ra_result_failure;
-				ra_result_found		<= ra_result_found;
 				calc_result 		<= calc_result;
 
 			end case; --case basato sullo stato corrente
 	end process;
 
-	--Processi di read address
-	ra_state_register : process( i_clk, i_rst, current_state )
-	begin
-		
-		--Azioni di reset per i processi di read address vanno qui
-		if(i_rst = '1') then
-
-			ra_current_state <= RA_WAIT_FOR_START;
-
-		elsif(rising_edge(i_clk)) then
-			
-			if current_state = WZ_READING_STATE then
-				ra_current_state <= ra_next_state;
-			end if;
-		end if ;
-
-	end process ; -- ra_state_register
-
-	ra_next_state_logic : process(ra_current_state, i_start, ra_result_found, ra_result_success, ra_result_failure, wz_counter)
-		--	i_start deve essere nella sensivity list, altrimenti il processo rischia di non essere triggerato quando RA_WAIT_FOR_START è in funzione da più di un ciclo di clock (perché il suo valore non varierebbe)
-	begin
-
-		case(ra_current_state) is
-
-			when RA_WAIT_FOR_START =>
-				if (i_start = '1') then
-					ra_next_state <= RA_ASK_ADDRESS;
-				else
-					ra_next_state <= RA_WAIT_FOR_START;
-				end if ;
-			
-			when RA_ASK_ADDRESS =>
-				ra_next_state <= RA_READ_ADDRESS;
-
-			when RA_READ_ADDRESS =>
-				ra_next_state <= RA_ASK_WZ;	
-
-			when RA_ASK_WZ =>
-				ra_next_state <= RA_READ_WZ;
-
-			when RA_READ_WZ =>
-				ra_next_state <= RA_WAIT_FOR_RESULTS;
-
-			when RA_WAIT_FOR_RESULTS =>
-				if(ra_result_found = '1') then
-					if(ra_result_success = '1') then
-						ra_next_state <= RA_DONE;
-					elsif(ra_result_failure = '1') then
-						if(wz_counter = 8) then	--hai controllato tutte le working zone
-							ra_next_state <= RA_DONE;
-						else
-							--wz_counter <= wz_counter + 1; --questo viene fatto dal calc_process
-							ra_next_state <= RA_ASK_WZ;
-						end if ;
-					end if;
-				else
-					ra_next_state <= RA_WAIT_FOR_RESULTS;
-				end if;
-		
-			when others =>
-				ra_next_state <= RA_DONE;
-
-		end case ;
-
-	end process ; -- ra_next_state_logic
-
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, ra_current_state, wz_counter, i_data, encoded_res)
+	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res) --TODO: Rimuovere segnali che non risvegliano questo processo
 	begin
-	
-		case( current_state ) is
+
+		case( current_state ) is	
+
+			when ADD_ASK_STATE =>
+				o_en <= '1';
+				o_we <= '0';
+				o_address <= calculateAddress(ADDOFF);
 		
-			when START_IDLE =>
-				o_en	<= '0';
-				o_we	<= '0';
+			when ADD_READING_STATE =>
+				o_en <= '0';
+				o_we <= '0';
 				o_address <= x"0000";
+				base_address <= i_data;
+
+			when WZ_ASK_STATE =>
+				o_en	<= '1';
+				o_we	<= '0';
+				o_address <= calculateAddress(wz_counter);
 			
-			when WZ_CALC_STATE =>
-				o_en	<= '0';
-				o_we	<= '0';
-				o_address <= x"0000";
-				ra_read_completed <= '0';
-		
 			when WZ_READING_STATE =>
-				o_en	<= '0';
-				o_we	<= '0';
+				o_en <= '0';
+				o_we <= '0';
 				o_address <= x"0000";
-				
-				case( ra_current_state ) is
-				
-					when RA_ASK_ADDRESS =>
-						o_address <= calculateAddress(ADDOFF);
-						o_en 	  <= '1';
-				
-					when RA_ASK_WZ =>
-						o_address <= calculateAddress(wz_counter);
-						o_en 	  <= '1';
+				wz_address <= i_data;
 
-					when RA_READ_ADDRESS =>
-						base_address <= unsigned(i_data);
-
-					when RA_READ_WZ =>
-						wz_address <= unsigned(i_data);
-					
-					when RA_WAIT_FOR_RESULTS =>
-						ra_read_completed <= '1'; --triggera il calc_process
-
-					when others =>
-
-				end case ;
-			
 			when WRITING_STATE =>
 				o_en      <= '1';
 				o_we      <= '1';
@@ -381,9 +260,12 @@ begin
 				o_data    <= encoded_res;
 
 			when others =>
-		
+				o_en	<= '0';
+				o_we	<= '0';
+				o_address <= x"0000";
+
 		end case ;
 
-	end process ; -- read_from_RAM
+	end process ; -- speak_with_RAM
 	
 end rtl;
