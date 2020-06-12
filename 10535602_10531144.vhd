@@ -48,10 +48,11 @@ architecture rtl of project_reti_logiche is
 	); --end state_type declaration
 	
 	--FSM signals
-	signal current_state	: state_type := START_IDLE;	      --stato attuale
-	signal next_state		: state_type;				      --prossimo stato della FSM
-	signal wz_counter		: unsigned(3 downto 0) := "0000"; --contatore della working zone considerata (da 0 a 7, più bit di overflow). 
+	signal current_state	: state_type := START_IDLE;	    --stato attuale
+	signal next_state		: state_type;				    --prossimo stato della FSM
+	signal wz_counter		: unsigned(3 downto 0);			--contatore della working zone considerata (da 0 a 7, più bit di overflow). 
 	--other internal signals
+	signal counter_add_sig	: std_logic := '0';				--aumenta il valore del contatore di working zone wz_counter
 	signal base_address		: unsigned(7 downto 0);			--buffer interno per la memorizzazione dell'indirizzo da verificare 
 	signal wz_address		: unsigned(7 downto 0);			--buffer interno per la working zone considerata al momento 
 	signal calc_result		: unsigned(7 downto 0);			--codifica binaria dell'offset relativo alla working zone corretta
@@ -76,6 +77,24 @@ architecture rtl of project_reti_logiche is
 	end function;
 
 begin
+
+	--questo processo aggiorna il contatore wz_counter
+	wz_counter_process : process(i_rst, i_clk, counter_add_sig)
+	begin
+		if (i_rst = '1') then
+			wz_counter <= "0000";
+		else
+			if(falling_edge(i_clk)) then
+				if(counter_add_sig = '1') then
+					wz_counter <= wz_counter + 1;
+				else
+					wz_counter <= wz_counter;
+				end if;
+			end if;
+		end if;
+	end process;
+
+
 	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
 	state_register : process(i_rst, i_clk)
 	begin
@@ -97,7 +116,7 @@ begin
 			-- rimane in questo stato fino al segnale di start
 			when START_IDLE =>
 				--reset dei segnali
-				wz_counter			<= "0000";
+				counter_add_sig		<= '0';
 				o_done				<= '0';
 				calc_result 		<= x"11";
 				encoded_res			<= x"00";
@@ -109,7 +128,7 @@ begin
 				end if;
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;					
@@ -117,18 +136,22 @@ begin
 			--richiede indirizzo da codificare
 			when ADD_ASK_STATE =>
 				next_state <= ADD_READING_STATE;
+				counter_add_sig		<= '0';
 
 			--Legge indirizzo da codificare dalla RAM
 			when ADD_READING_STATE =>
 				next_state <= WZ_ASK_STATE;
+				counter_add_sig		<= '0';
 
 			--richiede i-esima wz
-			when WR_ASK_STATE =>
+			when WZ_ASK_STATE =>
 				next_state <= WZ_READING_STATE;
+				counter_add_sig		<= '0';
 
 			--Legge i-esima working zone dalla RAM
 			when WZ_READING_STATE =>
 				next_state <= WZ_CALC_STATE;
+				counter_add_sig		<= '0';
 
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
@@ -139,7 +162,7 @@ begin
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				o_done 				<= '0';
 				encoded_res			<= encoded_res;
 				
@@ -149,15 +172,14 @@ begin
 				
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 					next_state			<= FOUND_WZ_ENCODING;
-					wz_counter			<= wz_counter;
+					counter_add_sig		<= '0';
 
 				else
 					next_state 			<= WZ_READING_STATE;
-					wz_counter			<= wz_counter + 1;
+					counter_add_sig		<= '1';
 				end if; --decisione in base al risultato
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;
@@ -170,7 +192,7 @@ begin
 				next_state <= WRITING_STATE;
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
 
@@ -195,7 +217,7 @@ begin
 				next_state <= WRITING_STATE;
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
 
@@ -210,15 +232,14 @@ begin
 				end if;
 
 				--avoiding inferring latches
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;
 					
 			when others =>
-				-- gli altri stati possibili sono gestiti dal processo speak_with_ram
 				--avoiding inferring latches
 				encoded_res			<= encoded_res;
-				wz_counter 			<= wz_counter;
+				counter_add_sig		<= '0';
 				o_done 				<= '0';
 				calc_result 		<= calc_result;
 
@@ -229,7 +250,7 @@ begin
 	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res) --TODO: Rimuovere segnali che non risvegliano questo processo
 	begin
 
-		case( current_state ) is	
+		case( current_state ) is
 
 			when ADD_ASK_STATE =>
 				o_en <= '1';
@@ -240,7 +261,7 @@ begin
 				o_en <= '0';
 				o_we <= '0';
 				o_address <= x"0000";
-				base_address <= i_data;
+				base_address <= unsigned(i_data);
 
 			when WZ_ASK_STATE =>
 				o_en	<= '1';
@@ -251,7 +272,7 @@ begin
 				o_en <= '0';
 				o_we <= '0';
 				o_address <= x"0000";
-				wz_address <= i_data;
+				wz_address <= unsigned(i_data);
 
 			when WRITING_STATE =>
 				o_en      <= '1';
