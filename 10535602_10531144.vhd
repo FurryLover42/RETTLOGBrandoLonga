@@ -44,9 +44,14 @@ architecture rtl of project_reti_logiche is
 		NO_WZ_ENCODING,		--codifica la parola da scrivere nella ram in encoded_res, quindi va in writing state. WHATIF: i due stati possono essere uniti
 		WRITING_STATE,		--scrive nella ram il contenuto di encoded_res, quindi va in END_IDLE
 		END_IDLE			--resta qui finché reset = 0
-							--TODO: specifica il comportamento per start = 1 quando reset è rimasto a 0
 	); --end state_type declaration
 	
+	--output buffers
+	signal o_address_buff	: std_logic_vector(15 downto 0);
+	signal o_done_buff		: std_logic;
+	signal o_en_buff		: std_logic;
+	signal o_we_buff		: std_logic;
+	signal o_data_buff		: std_logic_vector(7 downto 0);
 	--FSM signals
 	signal current_state	: state_type := START_IDLE;	    --stato attuale
 	signal next_state		: state_type;				    --prossimo stato della FSM
@@ -78,6 +83,15 @@ architecture rtl of project_reti_logiche is
 
 begin
 
+	buffer_process: process(o_address_buff, o_done_buff, o_en_buff, o_we_buff, o_data_buff)
+	begin
+		o_address	<= o_address_buff;
+		o_done		<= o_done_buff;
+		o_en		<= o_en_buff;
+		o_we		<= o_we_buff;
+		o_data		<= o_data_buff;
+	end process;
+
 	--questo processo aggiorna il contatore wz_counter
 	wz_counter_process : process(i_rst, i_start, i_clk, counter_add_sig)
 	begin
@@ -106,7 +120,7 @@ begin
 	end process;
 
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, encoded_res) --TODO: Rimuovi segnali che non risvegliano questo processo
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, encoded_res)
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -117,7 +131,7 @@ begin
 			when START_IDLE =>
 				--reset dei segnali
 				counter_add_sig		<= '0';
-				o_done				<= '0';
+				o_done_buff			<= '0';
 				calc_result 		<= x"11";
 				encoded_res			<= x"00";
 
@@ -129,7 +143,7 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done 				<= '0';
+				o_done_buff			<= '0';
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;					
 				
@@ -163,7 +177,7 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done 				<= '0';
+				o_done_buff			<= '0';
 				encoded_res			<= encoded_res;
 				
 
@@ -180,7 +194,7 @@ begin
 				end if; --decisione in base al risultato
 
 				--avoiding inferring latches
-				o_done 				<= '0';
+				o_done_buff			<= '0';
 				calc_result 		<= calc_result;
 				encoded_res			<= encoded_res;
 
@@ -193,7 +207,7 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done 				<= '0';
+				o_done_buff		<= '0';
 				calc_result 		<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
@@ -221,16 +235,16 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done 				<= '0';
+				o_done_buff 				<= '0';
 				calc_result 		<= calc_result;
 
 			when END_IDLE =>
 				if(i_start = '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
-					o_done <= '1';
+					o_done_buff <= '1';
 					next_state <= END_IDLE;
 				else	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
 						--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
-					o_done <= '0';
+					o_done_buff <= '0';
 					next_state <= START_IDLE;
 				end if;
 
@@ -243,50 +257,50 @@ begin
 				--avoiding inferring latches
 				encoded_res			<= encoded_res;
 				counter_add_sig		<= '0';
-				o_done 				<= '0';
+				o_done_buff 				<= '0';
 				calc_result 		<= calc_result;
 
 			end case; --case basato sullo stato corrente
 	end process;
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res) --TODO: Rimuovere segnali che non risvegliano questo processo
+	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res)
 	begin
 
 		case( current_state ) is
 
 			when ADD_ASK_STATE =>
-				o_en <= '1';
-				o_we <= '0';
-				o_address <= calculateAddress(ADDOFF);
+				o_en_buff <= '1';
+				o_we_buff <= '0';
+				o_address_buff <= x"0009"; --TODO: don't hardcode it if you can
 		
 			when ADD_READING_STATE =>
-				o_en <= '0';
-				o_we <= '0';
-				o_address <= x"0000";
+				o_en_buff <= '0';
+				o_we_buff <= '0';
+				o_address_buff <= x"0000";
 				base_address <= unsigned(i_data);
 
 			when WZ_ASK_STATE =>
-				o_en	<= '1';
-				o_we	<= '0';
-				o_address <= calculateAddress(wz_counter);
+				o_en_buff	<= '1';
+				o_we_buff	<= '0';
+				o_address_buff <= calculateAddress(wz_counter); --TODO: this is WRONG
 			
 			when WZ_READING_STATE =>
-				o_en <= '0';
-				o_we <= '0';
-				o_address <= x"0000";
+				o_en_buff <= '0';
+				o_we_buff <= '0';
+				o_address_buff <= x"0000";
 				wz_address <= unsigned(i_data);
 
 			when WRITING_STATE =>
-				o_en      <= '1';
-				o_we      <= '1';
-				o_address <= calculateAddress(RESULTOFF);
-				o_data    <= encoded_res;
+				o_en_buff      <= '1';
+				o_we_buff      <= '1';
+				o_address_buff <= calculateAddress(RESULTOFF);
+				o_data_buff    <= encoded_res;
 
 			when others =>
-				o_en	<= '0';
-				o_we	<= '0';
-				o_address <= x"0000";
+				o_en_buff	<= '0';
+				o_we_buff	<= '0';
+				o_address_buff <= x"0000";
 
 		end case ;
 
