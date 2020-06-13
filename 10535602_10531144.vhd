@@ -35,14 +35,17 @@ architecture rtl of project_reti_logiche is
 	type state_type is (
 		START_IDLE,			--si va in questo stato in seguito al segnale di reset a prescindere dallo stato attuale, e ci si resta finché start = 0
 		ADD_ASK_STATE,      --richiede l'indirizzo da codificare alla RAM
+		ADD_WAIT_RESPONSE,	--stato di attesa per permettere alla RAM di processare la richiesta
 		ADD_READING_STATE,  --legge l'indirizzo da codificare dalla RAM
 		WZ_ASK_STATE,		--richiede l'i-esima wz alla RAM
+		WZ_WAIT_RESPONSE,	--stato di attesa per permettere alla RAM di processare la richiesta
 		WZ_READING_STATE,	--legge la i-esima working zone e va in WZ_CALC_STATE. Se invece non ci sono altre wz da leggere, va in NO_WZ_ENCODING
 		WZ_CALC_STATE,		--calcola se l'address appartiene alla working zone corrente
 		WZ_DECISION,		--in base a quanto fatto da WZ_CALC_STATE decide se passare all'encoding o richiedere una nuova working zone
 		FOUND_WZ_ENCODING,	--codifica la parola da scrivere nella ram in encoded_res, quindi va in writing state
 		NO_WZ_ENCODING,		--codifica la parola da scrivere nella ram in encoded_res, quindi va in writing state. WHATIF: i due stati possono essere uniti
 		WRITING_STATE,		--scrive nella ram il contenuto di encoded_res, quindi va in END_IDLE
+		WRITING_WAIT,		--stato di attesa per permettere alla RAM di processare la richiesta
 		END_IDLE			--resta qui finché reset = 0
 	); --end state_type declaration
 	
@@ -65,31 +68,27 @@ architecture rtl of project_reti_logiche is
 
 	--Dichiarazioni costanti
 	constant BASEADD    : unsigned(15 downto 0) := x"0000";
-	constant BASEOFFSET : integer := 8;
-	constant ADDOFF     : unsigned(3 downto 0) := x"8";
-
-	--Utilizzo RAM
-	--Dichiarazioni constanti
-	constant RESULTOFF : unsigned(3 downto 0) := x"9";
+	constant NOFWZ : integer := 8;
 
 	--Dichiarazioni funzioni
-	function calculateAddress(offset :unsigned)
+	function calculateAddress(wz_number :unsigned)
 	return std_logic_vector is
 	begin
 	
-		return std_logic_vector(BASEADD + BASEOFFSET * offset);
+		return std_logic_vector(BASEADD + wz_number);
 
 	end function;
 
 begin
 
+	--questo processo associa le uscite a un registro di buffer
 	buffer_process: process(o_address_buff, o_done_buff, o_en_buff, o_we_buff, o_data_buff)
 	begin
-		o_address	<= o_address_buff;
+		o_address	<= std_logic_vector(o_address_buff);
 		o_done		<= o_done_buff;
 		o_en		<= o_en_buff;
 		o_we		<= o_we_buff;
-		o_data		<= o_data_buff;
+		o_data		<= std_logic_vector(o_data_buff);
 	end process;
 
 	--questo processo aggiorna il contatore wz_counter
@@ -149,23 +148,31 @@ begin
 				
 			--richiede indirizzo da codificare
 			when ADD_ASK_STATE =>
+				next_state <= ADD_WAIT_RESPONSE;
+				counter_add_sig	<= '0';
+
+			--pausa per un ciclo di clock
+			when ADD_WAIT_RESPONSE =>
 				next_state <= ADD_READING_STATE;
-				counter_add_sig		<= '0';
 
 			--Legge indirizzo da codificare dalla RAM
 			when ADD_READING_STATE =>
 				next_state <= WZ_ASK_STATE;
-				counter_add_sig		<= '0';
+				counter_add_sig	<= '0';
 
 			--richiede i-esima wz
 			when WZ_ASK_STATE =>
+				next_state <= WZ_WAIT_RESPONSE;
+				counter_add_sig	<= '0';
+
+			--pausa per un ciclo di clock
+			when WZ_WAIT_RESPONSE =>
 				next_state <= WZ_READING_STATE;
-				counter_add_sig		<= '0';
 
 			--Legge i-esima working zone dalla RAM
 			when WZ_READING_STATE =>
 				next_state <= WZ_CALC_STATE;
-				counter_add_sig		<= '0';
+				counter_add_sig	<= '0';
 
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
@@ -207,7 +214,7 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done_buff		<= '0';
+				o_done_buff			<= '0';
 				calc_result 		<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
@@ -230,12 +237,19 @@ begin
 				end case;
 				next_state <= WRITING_STATE;
 			when WRITING_STATE =>
-				next_state <= END_IDLE;
+				next_state <= WRITING_WAIT;
 				counter_add_sig		<= '0';
-
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done_buff 				<= '0';
+				o_done_buff 		<= '0';
+				calc_result 		<= calc_result;
+
+			when WRITING_WAIT =>
+				next_state <= END_IDLE;
+				--avoiding inferring latches
+				counter_add_sig		<= '0';
+				counter_add_sig		<= '0';
+				o_done_buff 		<= '0';
 				calc_result 		<= calc_result;
 
 			when END_IDLE =>
@@ -269,38 +283,59 @@ begin
 
 		case( current_state ) is
 
-			when ADD_ASK_STATE =>
-				o_en_buff <= '1';
-				o_we_buff <= '0';
-				o_address_buff <= x"0009"; --TODO: don't hardcode it if you can
+			when ADD_ASK_STATE | ADD_WAIT_RESPONSE =>
+				o_en_buff		<= '1';
+				o_we_buff		<= '0';
+				o_address_buff	<= BASEADD + unsigned(NOFWZ);
+				--avoiding inferring latches
+				base_address	<= base_address;
+				wz_address		<= wz_address;
+				o_data_buff		<= o_data_buff;
 		
 			when ADD_READING_STATE =>
-				o_en_buff <= '0';
-				o_we_buff <= '0';
-				o_address_buff <= x"0000";
-				base_address <= unsigned(i_data);
+				o_en_buff		<= '0';
+				o_we_buff		<= '0';
+				o_address_buff	<= o_address_buff;
+				base_address	<= unsigned(i_data);
+				--avoiding inferring latches
+				wz_address		<= wz_address;
+				o_data_buff		<= o_data_buff;
 
-			when WZ_ASK_STATE =>
-				o_en_buff	<= '1';
-				o_we_buff	<= '0';
-				o_address_buff <= calculateAddress(wz_counter); --TODO: this is WRONG
+			when WZ_ASK_STATE | WZ_WAIT_RESPONSE =>
+				o_en_buff		<= '1';
+				o_we_buff		<= '0';
+				o_address_buff	<= calculateAddress(wz_counter);
+				--avoiding inferring latches
+				base_address	<= base_address;
+				wz_address		<= wz_address;
+				o_data_buff		<= o_data_buff;
 			
 			when WZ_READING_STATE =>
-				o_en_buff <= '0';
-				o_we_buff <= '0';
-				o_address_buff <= x"0000";
-				wz_address <= unsigned(i_data);
+				o_en_buff		<= '0';
+				o_we_buff		<= '0';
+				o_address_buff	<= o_address_buff;
+				wz_address		<= unsigned(i_data);
+				--avoiding inferring latches
+				base_address	<= base_address;
+				o_data_buff		<= o_data_buff;
 
-			when WRITING_STATE =>
-				o_en_buff      <= '1';
-				o_we_buff      <= '1';
-				o_address_buff <= calculateAddress(RESULTOFF);
-				o_data_buff    <= encoded_res;
+			when WRITING_STATE | WRITING_WAIT =>
+				o_en_buff		<= '1';
+				o_we_buff		<= '1';
+				o_address_buff	<= BASEADD + unsigned(NOFWZ) + x"0001";
+				o_data_buff		<= encoded_res;
+				--avoiding inferring latches
+				base_address	<= base_address;
+				wz_address		<= wz_address;
 
 			when others =>
-				o_en_buff	<= '0';
-				o_we_buff	<= '0';
-				o_address_buff <= x"0000";
+				o_en_buff		<= '0';
+				o_we_buff		<= '0';
+				o_address_buff	<= x"0000";
+				--avoiding inferring latches
+				base_address	<= base_address;
+				wz_address		<= wz_address;
+				o_data_buff		<= o_data_buff;
 
 		end case ;
 
