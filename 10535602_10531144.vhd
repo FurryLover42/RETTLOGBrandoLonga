@@ -79,9 +79,9 @@ architecture rtl of project_reti_logiche is
 begin
 
 	--questo processo aggiorna il contatore wz_counter
-	wz_counter_process : process(i_rst, i_clk, counter_add_sig)
+	wz_counter_process : process(i_rst, i_start, i_clk, counter_add_sig)
 	begin
-		if (i_rst = '1') then
+		if (i_rst = '1' or i_start = '0') then
 			wz_counter <= "0000";
 		else
 			if(falling_edge(i_clk)) then
@@ -175,7 +175,7 @@ begin
 					counter_add_sig		<= '0';
 
 				else
-					next_state 			<= WZ_READING_STATE;
+					next_state 			<= WZ_ASK_STATE;
 					counter_add_sig		<= '1';
 				end if; --decisione in base al risultato
 
@@ -215,6 +215,9 @@ begin
 						encoded_res(3 downto 0) <= "XXXX";
 				end case;
 				next_state <= WRITING_STATE;
+			when WRITING_STATE =>
+				next_state <= END_IDLE;
+				counter_add_sig		<= '0';
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
@@ -222,7 +225,7 @@ begin
 				calc_result 		<= calc_result;
 
 			when END_IDLE =>
-				if(i_start <= '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
+				if(i_start = '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
 					o_done <= '1';
 					next_state <= END_IDLE;
 				else	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
