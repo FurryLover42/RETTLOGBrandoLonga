@@ -67,17 +67,16 @@ architecture rtl of project_reti_logiche is
 	signal encoded_res		: std_logic_vector(7 downto 0);	--codifica finale da mandare come risposta alla ram
 
 	--Dichiarazioni costanti
-	constant BASEADD    : unsigned(15 downto 0) := x"0000";
-	constant NOFWZ : integer := 8;
+	constant NOFWZ : unsigned(15 downto 0) := x"0008";
 
 	--Dichiarazioni funzioni
-	function calculateAddress(wz_number :unsigned)
-	return std_logic_vector is
-	begin
+--	function calculateAddress(wz_number :unsigned)
+--	return std_logic_vector is
+--	begin
 	
-		return std_logic_vector(BASEADD + wz_number);
+--		return std_logic_vector(wz_number);
 
-	end function;
+--	end function;
 
 begin
 
@@ -142,9 +141,6 @@ begin
 
 				--avoiding inferring latches
 				counter_add_sig		<= '0';
-				o_done_buff			<= '0';
-				calc_result 		<= calc_result;
-				encoded_res			<= encoded_res;					
 				
 			--richiede indirizzo da codificare
 			when ADD_ASK_STATE =>
@@ -195,6 +191,9 @@ begin
 					next_state			<= FOUND_WZ_ENCODING;
 					counter_add_sig		<= '0';
 
+				elsif(wz_counter >= "1000") then
+					next_state			<= NO_WZ_ENCODING;
+					counter_add_sig		<= '0';
 				else
 					next_state 			<= WZ_ASK_STATE;
 					counter_add_sig		<= '1';
@@ -286,7 +285,7 @@ begin
 			when ADD_ASK_STATE | ADD_WAIT_RESPONSE =>
 				o_en_buff		<= '1';
 				o_we_buff		<= '0';
-				o_address_buff	<= BASEADD + unsigned(NOFWZ);
+				o_address_buff	<= std_logic_vector(NOFWZ);
 				--avoiding inferring latches
 				base_address	<= base_address;
 				wz_address		<= wz_address;
@@ -304,7 +303,8 @@ begin
 			when WZ_ASK_STATE | WZ_WAIT_RESPONSE =>
 				o_en_buff		<= '1';
 				o_we_buff		<= '0';
-				o_address_buff	<= calculateAddress(wz_counter);
+				o_address_buff(15 downto 4)	<= x"000"; 
+				o_address_buff(3 downto 0)	<= std_logic_vector(wz_counter);
 				--avoiding inferring latches
 				base_address	<= base_address;
 				wz_address		<= wz_address;
@@ -322,7 +322,7 @@ begin
 			when WRITING_STATE | WRITING_WAIT =>
 				o_en_buff		<= '1';
 				o_we_buff		<= '1';
-				o_address_buff	<= BASEADD + unsigned(NOFWZ) + x"0001";
+				o_address_buff	<= std_logic_vector(NOFWZ + x"0001");
 				o_data_buff		<= encoded_res;
 				--avoiding inferring latches
 				base_address	<= base_address;
@@ -331,7 +331,7 @@ begin
 			when others =>
 				o_en_buff		<= '0';
 				o_we_buff		<= '0';
-				o_address_buff	<= x"0000";
+				o_address_buff	<= o_address_buff;
 				--avoiding inferring latches
 				base_address	<= base_address;
 				wz_address		<= wz_address;
