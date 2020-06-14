@@ -219,7 +219,7 @@ begin
 				RAM(3) <= assign(77);
 				RAM(6) <= assign(91);
 				RAM(8) <= assign(14);
-				--expected 1001.0010 92 146
+				--expected 1010.0010 a2 162
 
 				--Test di fallimento wz ripetute
 				when 12 =>
