@@ -277,7 +277,7 @@ begin
 	end process;
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res)
+	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res, base_address, wz_address, o_data_buff, o_address_buff)
 	begin
 
 		case( current_state ) is
