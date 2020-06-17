@@ -49,37 +49,29 @@ architecture rtl of project_reti_logiche is
 		END_IDLE			--resta qui finché reset = 0 e i_start = '1', per poi tornare in START_IDLE
 	); --end state_type declaration
 	
-	--output buffers
-	signal o_address_buff	: std_logic_vector(15 downto 0) := x"0000";
-	--FSM signals
-	signal current_state	: state_type := START_IDLE;	    --stato attuale
-	signal next_state		: state_type := START_IDLE;				--prossimo stato della FSM
+	--segnali della macchina a stati
+	signal current_state	: state_type := START_IDLE;	    --stato attuale della FSM
+	signal next_state		: state_type := START_IDLE;		--prossimo stato della FSM
+	--registri interni
 	signal wz_counter		: unsigned(3 downto 0) := x"0";			--contatore della working zone considerata (da 0 a 7, più bit di overflow). 
-	--other internal signals
-	signal counter_add_sig	: std_logic := '0';				--aumenta il valore del contatore di working zone wz_counter
-	signal base_address		: unsigned(7 downto 0) := x"00";			--buffer interno per la memorizzazione dell'indirizzo da verificare 
-	signal wz_address		: unsigned(7 downto 0) := x"00";			--buffer interno per la working zone considerata al momento 
-	signal calc_result		: unsigned(7 downto 0) := x"00";			--codifica binaria dell'offset relativo alla working zone corretta
-	signal encoded_res		: std_logic_vector(7 downto 0) := x"00";	--codifica finale da mandare come risposta alla ram
+	signal count_add_sig	: std_logic := '0';						--aumenta il valore del contatore di working zone wz_counter
+	signal base_address		: unsigned(7 downto 0) := x"00";		--buffer interno per la memorizzazione dell'indirizzo da verificare 
+	signal wz_address		: unsigned(7 downto 0) := x"00";		--buffer interno per la working zone considerata al momento 
+	signal calc_result		: unsigned(7 downto 0) := x"00";		--codifica binaria dell'offset relativo alla working zone corretta
+	signal encoded_res		: std_logic_vector(7 downto 0) := x"00";--codifica finale da mandare come risposta alla ram
 
 	--Dichiarazioni costanti
-	constant NOFWZ : unsigned(15 downto 0) := x"0008";
+	constant NOFWZ : unsigned(15 downto 0) := x"0008";	--numero di working zone
 
 begin
 
-	--questo processo associa le uscite a un registro di buffer
-	buffer_process: process(o_address_buff)
-	begin
-		o_address	<= std_logic_vector(o_address_buff);
-	end process;
-
-	--questo processo aggiorna il contatore wz_counter
-	wz_counter_process : process(i_rst, i_start, i_clk, counter_add_sig)
+	--questo processo aggiorna il contatore wz_counter e ne esegue il reset
+	wz_counter_process : process(i_rst, i_start, i_clk, count_add_sig)
 	begin
 		if (i_rst = '1' or i_start = '0') then
 			wz_counter <= "0000";
 		elsif(falling_edge(i_clk)) then
-			if(counter_add_sig = '1') then
+			if(count_add_sig = '1') then
 				wz_counter <= wz_counter + 1;
 			else
 				wz_counter <= wz_counter;
@@ -88,7 +80,7 @@ begin
 	end process;
 
 
-	--questo processo propaga lo stato successivo e rende possibile un reset asincrono
+	--questo processo propaga lo stato successivo e gestisce un reset asincrono della macchina a stati
 	state_register : process(i_rst, i_clk)
 	begin
 		if(i_rst = '1') then
@@ -109,10 +101,10 @@ begin
 			-- rimane in questo stato fino al segnale di start
 			when START_IDLE =>
 				--reset dei segnali
-				counter_add_sig		<= '0';
+				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result 		<= x"11";
-				encoded_res			<= x"00";
+				calc_result 	<= x"11";
+				encoded_res		<= x"00";
 
 				if(i_start = '1') then
 					next_state <= ADD_ASK_STATE;
@@ -124,8 +116,8 @@ begin
 			when ADD_ASK_STATE =>
 				next_state <= ADD_WAIT_RESPONSE;
 
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 				
@@ -134,8 +126,8 @@ begin
 			when ADD_WAIT_RESPONSE =>
 				next_state <= ADD_READING_STATE;
 
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 
@@ -143,8 +135,8 @@ begin
 			when ADD_READING_STATE =>
 				next_state <= WZ_ASK_STATE;
 
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 
@@ -152,26 +144,26 @@ begin
 			when WZ_ASK_STATE =>
 				next_state <= WZ_WAIT_RESPONSE;
 
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 
 			--pausa per un ciclo di clock
 			when WZ_WAIT_RESPONSE =>
 				next_state <= WZ_READING_STATE;
-				--avoiding inferring latches
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 
 			--Legge i-esima working zone dalla RAM
 			when WZ_READING_STATE =>
 				next_state <= WZ_CALC_STATE;
-				--avoiding inferring latches
-				counter_add_sig	<= '0';
-				o_done		<= '0';
+
+				count_add_sig	<= '0';
+				o_done			<= '0';
 				calc_result		<= calc_result;
 				encoded_res		<= encoded_res;
 
@@ -183,9 +175,9 @@ begin
 					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 
-				counter_add_sig		<= '0';
+				count_add_sig	<= '0';
 				o_done			<= '0';
-				encoded_res			<= encoded_res;
+				encoded_res		<= encoded_res;
 				
 
 			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
@@ -193,21 +185,20 @@ begin
 				
 				if(calc_result <= MAX_OFFSET) then	--se è vero, il base address fa parte della working zone, e calc_result contiene il suo offset
 					next_state			<= FOUND_WZ_ENCODING;
-					counter_add_sig		<= '0';
+					count_add_sig		<= '0';
 
 				elsif(wz_counter >= "1000") then	--se è vero, il base address non fa parte di nessuna working zone
 					next_state			<= NO_WZ_ENCODING;
-					counter_add_sig		<= '0';
+					count_add_sig		<= '0';
 					
 				else	--se sei qui, il base address non fa parte della wrking zone corrente, ma potrebbe far parte di una working zone futura
 					next_state 			<= WZ_ASK_STATE;
-					counter_add_sig		<= '1';
+					count_add_sig		<= '1';
 				end if;
 
-				--avoiding inferring latches
 				o_done			<= '0';
-				calc_result 		<= calc_result;
-				encoded_res			<= encoded_res;
+				calc_result 	<= calc_result;
+				encoded_res		<= encoded_res;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
@@ -217,9 +208,9 @@ begin
 				next_state <= WRITING_STATE;
 
 				--avoiding inferring latches
-				counter_add_sig		<= '0';
+				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result 		<= calc_result;
+				calc_result 	<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
@@ -237,43 +228,45 @@ begin
 					when "11" =>
 						encoded_res(3 downto 0) <= "1000";
 					when others => --condizione impossibile
-						encoded_res(3 downto 0) <= "XXXX";
+						encoded_res(3 downto 0) <= "0000";
 				end case;
 				next_state <= WRITING_STATE;
 
-				counter_add_sig <= '0';
-				o_done <= '0';
+				count_add_sig	<= '0';
+				o_done			<= '0';
 
 			when WRITING_STATE =>
 				next_state <= WRITING_WAIT;
-				counter_add_sig		<= '0';
-				o_done 		<= '0';
-				calc_result 		<= calc_result;
+
+				count_add_sig	<= '0';
+				o_done 			<= '0';
+				calc_result 	<= calc_result;
 
 			when WRITING_WAIT =>
 				next_state <= END_IDLE;
-				counter_add_sig		<= '0';
-				o_done 		<= '0';
-				calc_result 		<= calc_result;
+
+				count_add_sig	<= '0';
+				o_done 			<= '0';
+				calc_result 	<= calc_result;
 
 			when END_IDLE =>
 				if(i_start = '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
-					o_done <= '1';
-					next_state <= END_IDLE;
+					o_done		<= '1';
+					next_state	<= END_IDLE;
 				else	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
 						--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
-					o_done <= '0';
-					next_state <= START_IDLE;
+					o_done		<= '0';
+					next_state	<= START_IDLE;
 				end if;
 
-				counter_add_sig		<= '0';
-				calc_result 		<= calc_result;
-				encoded_res			<= encoded_res;
+				count_add_sig	<= '0';
+				calc_result 	<= calc_result;
+				encoded_res		<= encoded_res;
 					
 			when others =>	--non accade mai
 				next_state		<= START_IDLE;
 				encoded_res		<= encoded_res;
-				counter_add_sig	<= '0';
+				count_add_sig	<= '0';
 				o_done			<= '0';
 				calc_result 	<= calc_result;
 
@@ -281,7 +274,7 @@ begin
 	end process;
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process( i_clk, current_state, wz_counter, i_data, encoded_res, base_address, wz_address, o_address_buff)
+	speak_with_RAM : process(current_state, wz_counter, i_data, encoded_res, base_address, wz_address, o_address)
 	begin
 
 		case( current_state ) is
@@ -289,44 +282,45 @@ begin
 			when ADD_ASK_STATE | ADD_WAIT_RESPONSE =>
 				o_en		<= '1';
 				o_we		<= '0';
-				o_address_buff	<= std_logic_vector(NOFWZ);
+				o_address	<= std_logic_vector(NOFWZ);
+				o_data		<= (others => '0');
 
 				base_address	<= base_address;
 				wz_address		<= wz_address;
-				o_data		<= (others => '0');
+
 		
 			when ADD_READING_STATE =>
 				o_en		<= '0';
 				o_we		<= '0';
-				o_address_buff	<= o_address_buff;
-				base_address	<= unsigned(i_data);
-
-				wz_address		<= wz_address;
+				o_address	<= (others => '0');
 				o_data		<= (others => '0');
+
+				base_address	<= unsigned(i_data);	--modifica del FF
+				wz_address		<= wz_address;
 
 			when WZ_ASK_STATE | WZ_WAIT_RESPONSE =>
 				o_en		<= '1';
 				o_we		<= '0';
-				o_address_buff(15 downto 4)	<= x"000";
-				o_address_buff(3 downto 0)	<= std_logic_vector(wz_counter);
+				o_address(15 downto 4)	<= x"000";
+				o_address(3 downto 0)	<= std_logic_vector(wz_counter);
+				o_data		<= (others => '0');
 
 				base_address	<= base_address;
 				wz_address		<= wz_address;
-				o_data		<= (others => '0');
 			
 			when WZ_READING_STATE =>
 				o_en		<= '0';
 				o_we		<= '0';
-				o_address_buff	<= o_address_buff;
-				wz_address		<= unsigned(i_data);
+				o_address	<= (others => '0');
+				o_data		<= (others => '0');
 
 				base_address	<= base_address;
-				o_data		<= (others => '0');
+				wz_address		<= unsigned(i_data);	--modifica del FF
 
 			when WRITING_STATE | WRITING_WAIT =>
 				o_en		<= '1';
 				o_we		<= '1';
-				o_address_buff	<= std_logic_vector(NOFWZ + x"0001");
+				o_address	<= std_logic_vector(NOFWZ + x"0001");
 				o_data		<= encoded_res;
 
 				base_address	<= base_address;
@@ -335,11 +329,11 @@ begin
 			when others =>
 				o_en		<= '0';
 				o_we		<= '0';
-				o_address_buff	<= o_address_buff;
+				o_address	<= (others => '0');
+				o_data		<= (others => '0');
 
 				base_address	<= base_address;
 				wz_address		<= wz_address;
-				o_data		<= (others => '0');
 
 		end case ;
 
