@@ -54,11 +54,16 @@ architecture rtl of project_reti_logiche is
 	signal next_state		: state_type := START_IDLE;		--prossimo stato della FSM
 	--registri interni
 	signal wz_counter		: unsigned(3 downto 0) := x"0";			--contatore della working zone considerata (da 0 a 7, più bit di overflow). 
-	signal count_add_sig	: std_logic := '0';						--aumenta il valore del contatore di working zone wz_counter
-	signal base_address		: unsigned(7 downto 0) := x"00";		--buffer interno per la memorizzazione dell'indirizzo da verificare 
-	signal wz_address		: unsigned(7 downto 0) := x"00";		--buffer interno per la working zone considerata al momento 
-	signal calc_result		: unsigned(7 downto 0) := x"00";		--codifica binaria dell'offset relativo alla working zone corretta
-	signal encoded_res		: std_logic_vector(7 downto 0) := x"00";--codifica finale da mandare come risposta alla ram
+	signal base_address		: unsigned(7 downto 0) := x"00";		--registro interno per la memorizzazione dell'indirizzo da verificare 
+	signal wz_address		: unsigned(7 downto 0) := x"00";		--registro interno per la working zone considerata al momento 
+	signal calc_result		: unsigned(7 downto 0) := x"00";		--registro interno della codifica binaria dell'offset relativo alla working zone corretta
+	signal encoded_res		: unsigned(7 downto 0) := x"00";		--registro interno della codifica finale da mandare come risposta alla ram
+	--segnali di modifica ai registri interni
+	signal count_add_sig	: std_logic := '0';	--aumenta il valore del contatore di working zone wz_counter
+	signal base_address_next	: unsigned(7 downto 0) := x"00";	--nuovo valore del registro base_address
+	signal wz_address_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro wz_address
+	signal calc_result_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro calc_result
+	signal encoded_res_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro encoded_res
 
 	--Dichiarazioni costanti
 	constant NOFWZ : unsigned(15 downto 0) := x"0008";	--numero di working zone
@@ -70,13 +75,33 @@ begin
 	begin
 		if (i_rst = '1' or i_start = '0') then
 			wz_counter <= "0000";
-		elsif(falling_edge(i_clk)) then
+		elsif(falling_edge(i_clk)) then		--TODO: controlla se funziona anche con rising_edge
 			if(count_add_sig = '1') then
 				wz_counter <= wz_counter + 1;
 			else
 				wz_counter <= wz_counter;
 			end if;
 		end if;
+	end process;
+	
+	FF_saving : process(i_clk,
+						base_address, base_address_next, wz_address, wz_address_next,
+						calc_result, calc_result_next, encoded_res, encoded_res_next)
+	begin
+		
+		base_address	<= base_address;
+		wz_address		<= wz_address;
+		calc_result		<= calc_result;
+		encoded_res		<= encoded_res;
+		
+		if(rising_edge(i_clk)) then
+			
+			base_address <= base_address_next;
+			wz_address <= wz_address_next;
+			calc_result <= calc_result_next;
+			encoded_res <= encoded_res_next;
+
+		end if; --clock
 	end process;
 
 
@@ -103,8 +128,8 @@ begin
 				--reset dei segnali
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result 	<= x"11";
-				encoded_res		<= x"00";
+				calc_result_next 	<= x"00";
+				encoded_res_next	<= x"00";
 
 				if(i_start = '1') then
 					next_state <= ADD_ASK_STATE;
@@ -118,8 +143,8 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 				
 
 			--pausa per un ciclo di clock
@@ -128,8 +153,8 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			--Legge indirizzo da codificare dalla RAM
 			when ADD_READING_STATE =>
@@ -137,8 +162,8 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			--richiede i-esima wz
 			when WZ_ASK_STATE =>
@@ -146,8 +171,8 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			--pausa per un ciclo di clock
 			when WZ_WAIT_RESPONSE =>
@@ -155,8 +180,8 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			--Legge i-esima working zone dalla RAM
 			when WZ_READING_STATE =>
@@ -164,20 +189,20 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result		<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			-- stabilisce se il base address appartiene alla working zone contenuta in wz_address
 			when WZ_CALC_STATE =>
 
-				calc_result <= base_address - wz_address;
+				calc_result_next <= base_address - wz_address;
 					-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
 					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 
-				count_add_sig	<= '0';
-				o_done			<= '0';
-				encoded_res		<= encoded_res;
+				count_add_sig		<= '0';
+				o_done				<= '0';
+				encoded_res_next	<= encoded_res;
 				
 
 			--sceglie cosa fare in base al risultato dell'operazione eseguita in WZ_CALC_STATE
@@ -197,26 +222,26 @@ begin
 				end if;
 
 				o_done			<= '0';
-				calc_result 	<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
 
 				encoded_res(7) <= '0';
-				encoded_res(6 downto 0) <= std_logic_vector(base_address(6 downto 0));	--NOT SURE ABOUT THAT
+				encoded_res(6 downto 0) <= base_address(6 downto 0);
 				next_state <= WRITING_STATE;
 
 				--avoiding inferring latches
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result 	<= calc_result;
+				calc_result_next 	<= calc_result;
 
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
 				encoded_res(7) <= '1';
-				encoded_res(6 downto 4) <= std_logic_vector(wz_counter(2 downto 0));
+				encoded_res(6 downto 4) <= wz_counter(2 downto 0);
 
 				case calc_result(1 downto 0) is
 					when "00" =>
@@ -234,20 +259,23 @@ begin
 
 				count_add_sig	<= '0';
 				o_done			<= '0';
+				calc_result_next	<= calc_result;
 
 			when WRITING_STATE =>
 				next_state <= WRITING_WAIT;
 
 				count_add_sig	<= '0';
 				o_done 			<= '0';
-				calc_result 	<= calc_result;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			when WRITING_WAIT =>
 				next_state <= END_IDLE;
 
 				count_add_sig	<= '0';
 				o_done 			<= '0';
-				calc_result 	<= calc_result;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			when END_IDLE =>
 				if(i_start = '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
@@ -260,21 +288,21 @@ begin
 				end if;
 
 				count_add_sig	<= '0';
-				calc_result 	<= calc_result;
-				encoded_res		<= encoded_res;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 					
 			when others =>	--non accade mai
 				next_state		<= START_IDLE;
-				encoded_res		<= encoded_res;
 				count_add_sig	<= '0';
 				o_done			<= '0';
-				calc_result 	<= calc_result;
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			end case;
 	end process;
 
 	--Processo di comunicazione con RAM, un ciclo di clock deve essere abbastanza per leggere/scrivere un dato
-	speak_with_RAM : process(current_state, wz_counter, i_data, encoded_res, base_address, wz_address, o_address)
+	speak_with_RAM : process(current_state, wz_counter, i_data, encoded_res, base_address, wz_address)
 	begin
 
 		case( current_state ) is
@@ -285,8 +313,8 @@ begin
 				o_address	<= std_logic_vector(NOFWZ);
 				o_data		<= (others => '0');
 
-				base_address	<= base_address;
-				wz_address		<= wz_address;
+				base_address_next	<= base_address;
+				wz_address_next		<= wz_address;
 
 		
 			when ADD_READING_STATE =>
@@ -295,8 +323,8 @@ begin
 				o_address	<= (others => '0');
 				o_data		<= (others => '0');
 
-				base_address	<= unsigned(i_data);	--modifica del FF
-				wz_address		<= wz_address;
+				base_address_next	<= unsigned(i_data);	--modifica del FF
+				wz_address_next		<= wz_address;
 
 			when WZ_ASK_STATE | WZ_WAIT_RESPONSE =>
 				o_en		<= '1';
@@ -305,8 +333,8 @@ begin
 				o_address(3 downto 0)	<= std_logic_vector(wz_counter);
 				o_data		<= (others => '0');
 
-				base_address	<= base_address;
-				wz_address		<= wz_address;
+				base_address_next	<= base_address;
+				wz_address_next		<= wz_address;
 			
 			when WZ_READING_STATE =>
 				o_en		<= '0';
@@ -314,17 +342,17 @@ begin
 				o_address	<= (others => '0');
 				o_data		<= (others => '0');
 
-				base_address	<= base_address;
-				wz_address		<= unsigned(i_data);	--modifica del FF
+				base_address_next	<= base_address;
+				wz_address_next		<= unsigned(i_data);	--modifica del FF
 
 			when WRITING_STATE | WRITING_WAIT =>
 				o_en		<= '1';
 				o_we		<= '1';
 				o_address	<= std_logic_vector(NOFWZ + x"0001");
-				o_data		<= encoded_res;
+				o_data		<= std_logic_vector(encoded_res);
 
-				base_address	<= base_address;
-				wz_address		<= wz_address;
+				base_address_next	<= base_address;
+				wz_address_next		<= wz_address;
 
 			when others =>
 				o_en		<= '0';
@@ -332,8 +360,8 @@ begin
 				o_address	<= (others => '0');
 				o_data		<= (others => '0');
 
-				base_address	<= base_address;
-				wz_address		<= wz_address;
+				base_address_next	<= x"00";
+				wz_address_next		<= x"00";
 
 		end case ;
 
