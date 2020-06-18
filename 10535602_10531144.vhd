@@ -291,7 +291,7 @@ begin
 				calc_result_next	<= calc_result;
 				encoded_res_next	<= encoded_res;
 					
-			when others =>	--non accade mai
+			when others =>	--condizione impossibile, perché tutti gli stati sono già stati presi in considerazione
 				next_state		<= START_IDLE;
 				count_add_sig	<= '0';
 				o_done			<= '0';
