@@ -305,7 +305,7 @@ begin
 		reset <= '0';
 		wait for 400 ns;
 		reset <= '1';
-		wait for 102 ns;
+		wait for 204 ns;
 		reset <= '0';
 		wait for 10 us;
 		reset <= '1';

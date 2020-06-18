@@ -228,8 +228,8 @@ begin
 			-- codifica il segnale di uscita, nel caso in cui il base address non appartenga a nessuna working zone
 			when NO_WZ_ENCODING =>
 
-				encoded_res(7) <= '0';
-				encoded_res(6 downto 0) <= base_address(6 downto 0);
+				encoded_res_next(7) <= '0';
+				encoded_res_next(6 downto 0) <= base_address(6 downto 0);
 				next_state <= WRITING_STATE;
 
 				--avoiding inferring latches
@@ -240,20 +240,20 @@ begin
 			-- codifica il segnale di uscita, nel caso in cui il base address appartenga all'i-esima working zone.
 			-- in questo caso, il valore di i è contenuto nel vettore wz_counter, e l'offset nel vettore calc_result
 			when FOUND_WZ_ENCODING =>
-				encoded_res(7) <= '1';
-				encoded_res(6 downto 4) <= wz_counter(2 downto 0);
+				encoded_res_next(7) <= '1';
+				encoded_res_next(6 downto 4) <= wz_counter(2 downto 0);
 
 				case calc_result(1 downto 0) is
 					when "00" =>
-						encoded_res(3 downto 0) <= "0001";
+						encoded_res_next(3 downto 0) <= "0001";
 					when "01" =>
-						encoded_res(3 downto 0) <= "0010";
+						encoded_res_next(3 downto 0) <= "0010";
 					when "10" =>
-						encoded_res(3 downto 0) <= "0100";
+						encoded_res_next(3 downto 0) <= "0100";
 					when "11" =>
-						encoded_res(3 downto 0) <= "1000";
+						encoded_res_next(3 downto 0) <= "1000";
 					when others => --condizione impossibile
-						encoded_res(3 downto 0) <= "0000";
+						encoded_res_next(3 downto 0) <= "0000";
 				end case;
 				next_state <= WRITING_STATE;
 
@@ -360,8 +360,8 @@ begin
 				o_address	<= (others => '0');
 				o_data		<= (others => '0');
 
-				base_address_next	<= x"00";
-				wz_address_next		<= x"00";
+				base_address_next	<= base_address;
+				wz_address_next		<= wz_address;
 
 		end case ;
 
