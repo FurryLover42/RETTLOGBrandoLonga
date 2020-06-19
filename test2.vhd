@@ -298,18 +298,51 @@ begin	--begin architecture
 		start <= '1';
 
 		wait until done = '1';
+		wait for 200 ns;
 		
 		start <= '0';
 		
+		case(number_of_test) is
+			when 1 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 2 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 3 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 4 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 5 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 6 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 7 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 8 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 9 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 10 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 11 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 12 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 13 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+				
+										
+			when others =>
+				assert false report "lol";
+		end case;
+		
 		wait until done = '0';
+		wait for 300 ns;
 		
 		if(number_of_test < 13) then
-			number_of_test <= number_of_test + 1;
-			wait for 100 ns;
-			start <= '1';
+			number_of_test <= number_of_test + 1; --esegue un nuovo test
 		
 		else
-			assert false report "simulation ended";
+			assert false report "simulation ended" severity failure;
 		end if;
 
 	end process ; -- start_sim
