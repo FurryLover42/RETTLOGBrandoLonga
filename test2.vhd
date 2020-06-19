@@ -340,7 +340,7 @@ begin	--begin architecture
 				RAM(6) <= assign(85);
 				RAM(7) <= assign(80);
 				RAM(8) <= assign(120);
-				--expected 1010.1000 a8 168
+				--expected 1001.1000 98 152
 
 				when 20 =>
 
