@@ -26,3 +26,5 @@ working_zones_project.xpr
 #ignora i wcfg tranne quello principale
 *.wcfg
 !minitest_behav.wcfg
+#ignora i file generati dal randomizzatore
+random_test.txt
