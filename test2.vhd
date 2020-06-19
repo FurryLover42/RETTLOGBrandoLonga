@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity testing is
-end entity ; -- testing
+end testing;
 
 architecture sim of testing is
 
@@ -42,10 +42,24 @@ architecture sim of testing is
 
 	end function;
 
-begin
+component project_reti_logiche is
+port (
+      i_clk         : in  std_logic;
+      i_start       : in  std_logic;
+      i_rst         : in  std_logic;
+      i_data        : in  std_logic_vector(7 downto 0);
+      o_address     : out std_logic_vector(15 downto 0);
+      o_done        : out std_logic;
+      o_en          : out std_logic;
+      o_we          : out std_logic;
+      o_data        : out std_logic_vector (7 downto 0)
+      );
+end component project_reti_logiche;
+
+begin	--begin architecture
 
 	--port mapping
-	macchina : entity work.project_reti_logiche(rtl) port map(
+	macchina : project_reti_logiche port map(
 		i_clk		=> clock,
 		i_start		=> start,
 		i_rst		=> reset,

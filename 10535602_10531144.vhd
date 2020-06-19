@@ -53,7 +53,7 @@ architecture rtl of project_reti_logiche is
 	signal current_state	: state_type := START_IDLE;	    --stato attuale della FSM
 	signal next_state		: state_type := START_IDLE;		--prossimo stato della FSM
 	--registri interni
-	signal wz_counter		: unsigned(3 downto 0) := x"0";			--contatore della working zone considerata (da 0 a 7, più bit di overflow). 
+	signal wz_counter		: unsigned(15 downto 0) := x"0000";		--contatore della working zone considerata (da 0 a 7, più bit di overflow). 
 	signal base_address		: unsigned(7 downto 0) := x"00";		--registro interno per la memorizzazione dell'indirizzo da verificare 
 	signal wz_address		: unsigned(7 downto 0) := x"00";		--registro interno per la working zone considerata al momento 
 	signal calc_result		: unsigned(7 downto 0) := x"00";		--registro interno della codifica binaria dell'offset relativo alla working zone corretta
@@ -74,7 +74,7 @@ begin
 	wz_counter_process : process(i_rst, i_start, i_clk, count_add_sig)
 	begin
 		if (i_rst = '1' or i_start = '0') then
-			wz_counter <= "0000";
+			wz_counter <= x"0000";
 		elsif(falling_edge(i_clk)) then		--TODO: controlla se funziona anche con rising_edge
 			if(count_add_sig = '1') then
 				wz_counter <= wz_counter + 1;
@@ -212,7 +212,7 @@ begin
 					next_state			<= FOUND_WZ_ENCODING;
 					count_add_sig		<= '0';
 
-				elsif(wz_counter >= "1000") then	--se è vero, il base address non fa parte di nessuna working zone
+				elsif(wz_counter >= NOFWZ) then	--se è vero, il base address non fa parte di nessuna working zone
 					next_state			<= NO_WZ_ENCODING;
 					count_add_sig		<= '0';
 					
@@ -221,7 +221,7 @@ begin
 					count_add_sig		<= '1';
 				end if;
 
-				o_done			<= '0';
+				o_done				<= '0';
 				calc_result_next	<= calc_result;
 				encoded_res_next	<= encoded_res;
 
@@ -329,8 +329,7 @@ begin
 			when WZ_ASK_STATE | WZ_WAIT_RESPONSE =>
 				o_en		<= '1';
 				o_we		<= '0';
-				o_address(15 downto 4)	<= x"000";
-				o_address(3 downto 0)	<= std_logic_vector(wz_counter);
+				o_address	<= std_logic_vector(wz_counter);
 				o_data		<= (others => '0');
 
 				base_address_next	<= base_address;
