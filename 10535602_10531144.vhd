@@ -73,9 +73,12 @@ begin
 	--questo processo aggiorna il contatore wz_counter e ne esegue il reset
 	wz_counter_process : process(i_rst, i_start, i_clk, count_add_sig)
 	begin
+		--reset in caso di passaggio a start_idle o segnale di reset
 		if (i_rst = '1' or i_start = '0') then
 			wz_counter <= x"0000";
-		elsif(falling_edge(i_clk)) then		--TODO: controlla se funziona anche con rising_edge
+
+		--aggiornamento del valore sul fronte di salita del clock
+		elsif(falling_edge(i_clk)) then
 			if(count_add_sig = '1') then
 				wz_counter <= wz_counter + 1;
 			else

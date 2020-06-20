@@ -1,0 +1,4 @@
+I due screenshot spiegano perché sarebbe stato più brutto usare un rising edge per il wz_counter.
+
+Nello screen test14_rising_edge è mostrato l'esito della simulazione funzionale post-sintesi (test 14) ottenuta aggiornando wz_counter sul fronte di salita, mentre 
+test14_falling_edge sul fronte di discesa. C'è un'incongruenza di risultati.
