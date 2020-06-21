@@ -45,8 +45,9 @@ architecture rtl of project_reti_logiche is
 		FOUND_WZ_ENCODING,	--codifica la parola da scrivere nella ram in encoded_res, quindi va in WRITING_STATE
 		NO_WZ_ENCODING,		--codifica la parola da scrivere nella ram in encoded_res, quindi va in WRITING_STATE
 		WRITING_STATE,		--scrive nella ram il contenuto di encoded_res, quindi va in WRITING_WAIT
-		WRITING_WAIT,		--stato di attesa per permettere alla RAM di processare la richiesta, quindi va in END_WAIT
-		END_IDLE			--resta qui finché reset = 0 e i_start = '1', per poi tornare in START_IDLE
+		WRITING_WAIT,		--stato di attesa per permettere alla RAM di processare la richiesta, quindi va in DONE_WAIT
+		DONE_IDLE,			--mantiene alto il segnale di done; quando il segnale di start si abbassa, va in END_IDLE
+		END_IDLE			--resta qui finché i_start = '0', quindi torna in START_IDLE
 	); --end state_type declaration
 	
 	--segnali della macchina a stati
@@ -272,20 +273,32 @@ begin
 				encoded_res_next	<= encoded_res;
 
 			when WRITING_WAIT =>
-				next_state <= END_IDLE;
+				next_state <= DONE_IDLE;
 
 				count_add_sig	<= '0';
 				o_done 			<= '0';
 				calc_result_next	<= calc_result;
 				encoded_res_next	<= encoded_res;
+			
+			when DONE_IDLE =>
+				o_done <= '1';
+				
+				if(i_start = '1') then
+					next_state <= DONE_IDLE;
+				else
+					next_state <= END_IDLE;
+				end if;
+
+				count_add_sig	<= '0';
+				calc_result_next	<= calc_result;
+				encoded_res_next	<= encoded_res;
 
 			when END_IDLE =>
-				if(i_start = '1') then		--il modulo resta in questo stato finché i_start non viene abbassato
-					o_done		<= '1';
+				o_done <= '0';
+				if(i_start = '0') then		--il modulo resta in questo stato finché i_start non viene abbassato
 					next_state	<= END_IDLE;
 				else	--il modulo può ricevere un nuovo segnale di start e ripartire con la fase di codifica
 						--nota: non è necessario un reset, ma un segnale di reset è comunque gestibile
-					o_done		<= '0';
 					next_state	<= START_IDLE;
 				end if;
 
