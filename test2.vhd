@@ -33,7 +33,7 @@ architecture sim of testing is
 	--Dichiarazioni segnali vari
 	signal start_simulation : std_logic := '0';
 	signal number_of_test	: integer := 1;
-	constant total_test		: integer := 24;	--se vuoi aggiungere o eliminare test, modifica questo numero
+	constant total_test		: integer := 30;	--se vuoi aggiungere o eliminare test, modifica questo numero
 
     --Dichiarazione di funzioni
 	function assign(number : integer) return std_logic_vector is
@@ -407,6 +407,85 @@ begin	--begin architecture
 				RAM(8) <= assign(110);
 				--expected 1110.0010 e2 226
 
+				when 25 =>
+
+				RAM(0) <= assign(19);
+				RAM(1) <= assign(7);
+				RAM(2) <= assign(25);
+				RAM(3) <= assign(51);
+				RAM(4) <= assign(103);
+				RAM(5) <= assign(44);
+				RAM(6) <= assign(40);
+				RAM(7) <= assign(3);
+				RAM(8) <= assign(29);--miss
+				--expected 0001.1101 1d 29
+
+				when 26 =>
+
+				RAM(0) <= assign(60);
+				RAM(1) <= assign(82);
+				RAM(2) <= assign(127);
+				RAM(3) <= assign(23);
+				RAM(4) <= assign(44);
+				RAM(5) <= assign(60);
+				RAM(6) <= assign(82);
+				RAM(7) <= assign(75);
+				RAM(8) <= assign(1);--miss
+				--expected 0000.0001 01 1
+
+				when 27 =>
+
+				RAM(0) <= assign(97);
+				RAM(1) <= assign(96);--hit
+				RAM(2) <= assign(87);
+				RAM(3) <= assign(70);
+				RAM(4) <= assign(4);
+				RAM(5) <= assign(54);
+				RAM(6) <= assign(20);
+				RAM(7) <= assign(78);
+				RAM(8) <= assign(96);
+				--expected 1001.0001 91 145
+
+				when 28 =>
+
+				RAM(0) <= assign(32);
+				RAM(1) <= assign(4);
+				RAM(2) <= assign(2);
+				RAM(3) <= assign(1);
+				RAM(4) <= assign(8);
+				RAM(5) <= assign(16);
+				RAM(6) <= assign(78);
+				RAM(7) <= assign(123);
+				RAM(8) <= assign(64);--miss
+				--expected 0100.0000 40 64
+
+				when 29 =>
+
+				RAM(0) <= assign(120);
+				RAM(1) <= assign(100);
+				RAM(2) <= assign(27);
+				RAM(3) <= assign(13);
+				RAM(4) <= assign(124);--hit
+				RAM(5) <= assign(64);
+				RAM(6) <= assign(52);
+				RAM(7) <= assign(19);
+				RAM(8) <= assign(127);
+				--expected 1100.1000 c8 200
+
+				when 30 =>
+
+				RAM(0) <= assign(75);
+				RAM(1) <= assign(27);
+				RAM(2) <= assign(88);
+				RAM(3) <= assign(47);
+				RAM(4) <= assign(127);
+				RAM(5) <= assign(28);
+				RAM(6) <= assign(111);
+				RAM(7) <= assign(7);
+				RAM(8) <= assign(32);--miss
+				--expected 0010.0000 20 32
+
+
 				when others =>	--impossible
 
 			end case;
@@ -494,6 +573,18 @@ begin	--begin architecture
 			when 23 =>
 				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
 			when 24 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 25 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 26 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 27 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 28 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 29 =>
+				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
+			when 30 =>
 				assert false report "test " & integer'image(number_of_test) & ": RAM(9) = " & integer'image(to_integer(unsigned(RAM(9))));
 				
 										

@@ -199,8 +199,7 @@ begin
 			when WZ_CALC_STATE =>
 
 				calc_result_next <= base_address - wz_address;
-					-- se non avviene underflow, si può determinare subito se base_address era nel range [wz_address, wz_address + offset]
-					-- in caso di underflow, il MSB sara' 1, ed essendo unsigned risultera' sicuramente maggiore di 3, assumendo il comportamento desiderato.
+
 				next_state <= WZ_DECISION;	--in questo modo, WZ_CALC_STATE ha a disposizione un intero ciclo di clock per la sottrazione dei due registri
 
 				count_add_sig		<= '0';
