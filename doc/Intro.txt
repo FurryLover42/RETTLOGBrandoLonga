@@ -1,7 +1,7 @@
 Introduzione: 
 
 Abbiamo deciso di risolvere questo problema in maniera sequenziale: provando ogni WZ data una alla volta e riportando un risultato positivo al primo successo oppure un risultato negativo dopo l'ottavo fallimento.
-In questo modo l'implementazione è scalabile ad un (teoretico) infinito numero di WZ diverse con minimale aumento di volume, a pagarne sono le prestazioni nel caso pessimo (indirizzo appartenente alla ottava WZ o non appartenente a nessuna WZ), ma, dato l'utilizzo di WZ, si assume che il caso pessimo sia poco frequente, in più ordinando le WZ in ordine di frequenza si può facilmente velocizzare il processo.
+In questo modo l'implementazione è scalabile ad un (teorico) infinito numero di WZ diverse con minimale aumento di volume, a pagarne sono le prestazioni nel caso pessimo (indirizzo appartenente alla ottava WZ o non appartenente a nessuna WZ), ma, dato l'utilizzo di WZ, si assume che il caso pessimo sia poco frequente, in più ordinando le WZ in ordine di frequenza si può facilmente velocizzare il processo.
 
 Un piccolo esempio:
 WZ0: 4
