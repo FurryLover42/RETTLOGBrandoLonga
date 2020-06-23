@@ -40,9 +40,9 @@ for i in range(ending - starting + 1):
 		expected_bin = format(expected, '08b')
 		f.write(expected_bin[:4] + '.' + expected_bin[4:])	#expected is still the default value, which is now encoded into 8 digit binary number
 		f.write(' ')
-		f.write(str(expected))
+		f.write(str(hex(expected)[2:]))
 		f.write(' ')
-		f.write(str(hex(expected))[2:])
+		f.write(str(expected))
 		f.write('\n\n')
 
 f.close()	#close file
