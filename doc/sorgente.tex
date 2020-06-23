@@ -1,0 +1,89 @@
+\documentclass[a4paper,titlepage]{article}
+
+\usepackage{titlesec} %spacing for sections
+\usepackage[utf8]{inputenc}	% Unicode support
+\usepackage[margin=0.5in]{geometry}
+\usepackage[pdftex]{graphicx}% Picture handling
+	\graphicspath{C:/Users/Stefano\ Dalla\ Longa/Desktop/latex\ doc/}
+	\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+\usepackage{epstopdf}
+\usepackage{listings}		% Formatting and highlighting
+
+\author{Stefano Dalla Longa\\pID 10535602 \and Nicolò Brandolese\\pID 10531144}
+\date{}
+\title{Prova Finale di Reti Logiche, AA 2019-2020}
+
+
+\begin{document}
+	%title page
+	\begin{titlepage}
+    \begin{center}
+        \vspace*{3cm}
+            
+        \Huge
+        \textbf{Prova Finale di Reti Logiche}
+            
+        \vspace{0.5cm}
+        \LARGE
+        AA. 2019/2020
+            
+        \vspace{1.5cm}
+            
+        \textbf{Stefano Dalla Longa, pID 10535602 \\ Nicolò Brandolese, pID 10531144}
+        
+        \vspace{1.2 cm}
+        \Large
+		Politecnico di Milano, scaglione prof. Fornaciari
+            
+        \vspace{0.8cm}
+            
+    \end{center}
+\end{titlepage}
+
+	\tableofcontents
+	\clearpage	%using \newpage gives a wrong table of content enumeration
+	\section{Introduzione}
+   
+		This is the first section.
+      
+		Lorem  ipsum  dolor  sit  amet,  consectetuer  adipiscing  
+		elit.   Etiam  lobortisfacilisis sem.  Nullam nec mi et 
+		neque pharetra sollicitudin.  Praesent imperdietmi nec ante. 
+		Donec ullamcorper, felis non sodales...
+       
+	\section{Descrizione della macchina}
+		L'implementazione si basa sulla scomposizione in tre sottoproblemi:
+		\begin{enumerate}
+			\item comunicazione con la RAM, intesa come l'insieme di operazioni di lettura e scrittura
+			\item computazione per determinare l'appartenenza dell'indirizzo base ad una working zone
+			\item gestione del flusso in base al risultato della computazione
+		\end{enumerate}
+		La scelta di risoluzione è stata la creazione di una macchina a stati finiti, in particolare una macchina di Mealy, basata su tre macroprocessi:
+		\begin{itemize}
+			\item \textit{\texttt{state\_register}}:
+		\end{itemize}
+
+		Lorem ipsum dolor sit amet, consectetuer adipiscing elit.  
+		Etiam lobortis facilisissem.  Nullam nec mi et neque pharetra 
+		sollicitudin.  Praesent imperdiet mi necante...
+
+	\section{Test Eseguiti}
+       
+		Lorem ipsum dolor sit amet, consectetuer adipiscing elit.  
+		Etiam lobortis facilisissem.  Nullam nec mi et neque pharetra 
+		sollicitudin.  Praesent imperdiet mi necante...
+	\section{Limitazioni e ottimizzazioni possibili}
+		\subsection{Hardcoding}
+			Gli unici valori hardcodati sono dovuti al formato di codifica del risultato (work in progress)
+		\subsection{Segnale di reset}
+			Incidentalmente, la macchina viene già inizializzata allo stato di \textit{\texttt{START\_IDLE}}, stato nel quale avviene il reset di tutti i segnali interni e dal quale esce solo tramite il segnale di \textit{\texttt{i\_start}}.
+			Ne consegue che \textbf{non è necessario avviare la computazione con il segnale di \textit{\texttt{i\_reset}}}, ma l'utilizzo di \textit{\texttt{i\_reset}} è comunque gestito coerentemente con la specifica. Inoltre, \textit{\texttt{i\_reset}} resetta la macchina riportandone lo stato a \textit{\texttt{START\_IDLE}} indipendentemente dal valore di \textit{\texttt{i\_start}}.
+		\subsection{Ottimizzazione dei dati nella RAM}
+			La macchina è progettata per produrre il risultato corretto anche se gli indirizzi relativi alle working zone contenuti nella RAM non sono in ordine (vedasi la sezione 3 relativa ai test eseguiti). La macchina infatti esegue una scansione lineare di tutte le working zone, decidendo di volta in volta se richiedere la working zone successiva o fermarsi. Perciò, tra tutte le possibili computazioni il caso pessimo è quello in cui l'indirizzo base non appartiene a nessuna working zone, oppure quello in cui il base address appartiene alla working zone codificata in \textit{\texttt{RAM(7)}}.
+			Tuttavia, se venisse garantito che gli indirizzi delle working zone nella RAM siano in ordine crescente (decrescente), sarebbero possibili due modifiche:
+			\begin{itemize}
+			\item \textit{Riduzione dei casi pessimi}: se l'indirizzo della working zone appena esaminata ha un valore più alto dell'indirizzo base, si può concludere che l'indirizzo base non appartiene a nessuna working zone, riducendo così il numero dei casi pessimi. Tale modifica al progetto è piuttosto modesta, dal momento che basterebbe modificare lo stato di \textit{\texttt{WZ\_DECISION}}.
+			\item \textit{Ricerca binaria}: anziché eseguire una ricerca lineare della working zone risulterebbe più efficiente eseguire una ricerca binaria. Tale strategia ridurrebbe l'intera complessità temporale asintotica della macchina: se $n$ fosse il numero di working zone, si passerebbe da $T(n) \in \mathcal{O}(n)$ a $T(n) \in \mathcal{O}(\log n)$. Tuttavia, questa modifica è più onerosa di quella del punto precedente, dal momento che richiederebbe una modifica all'attuale metodo di scansione (affidato al semplice contatore di working zone \textit{\texttt{wz\_counter}}) e almeno un nuovo stato per il calcolo del prossimo indirizzo di memoria da richiedere.
+			\end{itemize}
+		
+\end{document}
