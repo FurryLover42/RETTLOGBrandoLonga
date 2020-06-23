@@ -28,3 +28,9 @@ working_zones_project.xpr
 !minitest_behav.wcfg
 #ignora i file generati dal randomizzatore
 random_test.txt
+
+#documentazione: ignora i file generati dal compilatore Latex
+sorgente.*
+#pero' non il sorgente base e il pdf
+!sorgente.tex
+!sorgente.pdf
