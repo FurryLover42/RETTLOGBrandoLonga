@@ -1,0 +1,18 @@
+Simulazioni
+
+Per garantire un funzionamento corretto abbiamo simulato il funzionamento del componente secondo questi dati iniziali, creati per controllare tutti i possibili casi di utilizzo.
+
+-Caso: [nome]
+-Dati:
+[wz0]
+[wz1]
+[wz2]
+[wz3]
+[wz4]
+[wz5]
+[wz6]
+[wz7]
+
+[indirizzo]
+-Risultato atteso: []
+-Risultato: []
