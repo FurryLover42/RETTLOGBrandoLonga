@@ -56,7 +56,7 @@
 		\begin{enumerate}
 			\item comunicazione con la RAM, intesa come l'insieme di operazioni di lettura e scrittura
 			\item computazione per determinare l'appartenenza dell'indirizzo base ad una working zone
-			\item gestione del flusso in base al risultato della computazione
+			\item gestione del flusso d'esecuzione in base al risultato della computazione
 		\end{enumerate}
 		La scelta di risoluzione è stata la creazione di una macchina a stati finiti, in particolare una macchina di Mealy, basata su tre macroprocessi:
 		\begin{itemize}
@@ -73,7 +73,7 @@
 		Abbiamo scelto di separare \textit{\texttt{calc\_process}} e \textit{\texttt{speak\_with\_RAM}} per ragioni di leggibilità, dal momento che da un punto di vista teorico entrambi costituiscono una componente combinatoria della stessa macchina a stati finiti, e perciò sarebbe stato possibile accorparli nel medesimo processo. Dal momento però che VHDL proibisce di modificare lo stesso segnale da processi diversi, la gestione del flusso modificando il valore di \textit{\texttt{next\_state}} è affidata esclusivamente a \textit{\texttt{calc\_process}}.
 		\newline
 		\newline
-		Il funzionamento della macchina a stati è schematizzato nella figura seguente; gli stati in blu sono tutti e i soli stati nei quali opera \textit{\texttt{speak\_with\_RAM}} e sono progettati per durare un ciclo di clock, gli stati in verde sono gli stati di calcolo e codifica da parte di \textit{\texttt{calc\_process}} anch'essi progettati per cambiare ad ogni ciclo di clock, mentre gli stati in rosso sono stati di idle gestiti da \textit{\texttt{calc\_process}}, progettati per bloccare il flusso di esecuzione ed eventualmente ricominciare la computazione in base al valore di \textit{\texttt{i\_start}}.
+		Il funzionamento della macchina a stati è schematizzato nella figura seguente; gli stati in blu sono tutti e i soli stati nei quali opera \textit{\texttt{speak\_with\_RAM}} e sono progettati per durare un ciclo di clock, gli stati in verde sono gli stati di calcolo e codifica da parte di \textit{\texttt{calc\_process}} anch'essi progettati per cambiare ad ogni ciclo di clock, mentre gli stati in rosso sono stati di idle gestiti da \textit{\texttt{calc\_process}}, progettati per arrestare il flusso di esecuzione ed eventualmente ricominciare la computazione in base al valore di \textit{\texttt{i\_start}}.
 
 		\includegraphics[scale=0.275]{retlog_FSM_v1_2.png}
 
@@ -86,10 +86,9 @@
 		\subsection{Hardcoding}
 			Gli unici valori hardcodati sono dovuti al formato di codifica del risultato (work in progress)
 		\subsection{Segnale di reset}
-			Incidentalmente, la macchina viene già inizializzata allo stato di \textit{\texttt{START\_IDLE}}, stato nel quale avviene il reset di tutti i segnali interni e dal quale esce solo tramite il segnale di \textit{\texttt{i\_start}}.
-			Ne consegue che \textbf{non è necessario avviare la computazione con il segnale di \textit{\texttt{i\_reset}}}, ma l'utilizzo di \textit{\texttt{i\_reset}} è comunque gestito coerentemente con la specifica. Inoltre, \textit{\texttt{i\_reset}} resetta la macchina riportandone lo stato a \textit{\texttt{START\_IDLE}} indipendentemente dal valore di \textit{\texttt{i\_start}}.
+			Dal momento che la specifica non riporta alcun vincolo né assunzione sul segnale di reset \textit{\texttt{i\_rst}} e sulla sua durata, abbiamo deciso di implementare un resetting sincrono. In particolare, la macchina è in grado di riconoscere una richiesta di reset a prescindere da quanto a lungo il segnale \textit{\texttt{i\_rst}} è rimasto al valore logico $1$, ma deve passare un intero ciclo di clock perché tale reset avvenga. Garantiamo comunque un comportamento coerente con la richiesta di reset: in particolare, non è possibile per la macchina notificare alla RAM la fine dell'elaborazione tramite il segnale \textit{\texttt{o\_done}} nei cicli immediatamente successivi all'innalzamento di \textit{\texttt{i\_rst}}.
 		\subsection{Ottimizzazione dei dati nella RAM}
-			La macchina è progettata per produrre il risultato corretto anche se gli indirizzi relativi alle working zone contenuti nella RAM non sono in ordine (vedasi la sezione 3 relativa ai test eseguiti). La macchina infatti esegue una scansione lineare di tutte le working zone, decidendo di volta in volta se richiedere la working zone successiva o fermarsi. Perciò, tra tutte le possibili computazioni il caso pessimo è quello in cui l'indirizzo base non appartiene a nessuna working zone, oppure quello in cui il base address appartiene alla working zone codificata in \textit{\texttt{RAM($7$)}}.
+			La macchina è progettata per produrre il risultato corretto anche se gli indirizzi relativi alle working zone contenuti nella RAM non sono in ordine (vedasi la sezione 3 relativa ai test eseguiti). La macchina infatti esegue una scansione lineare di tutte le working zone, decidendo per ogni working zone letta se richiedere la working zone successiva o fermarsi. Perciò, tra tutte le possibili configurazioni, il caso pessimo è quello in cui l'indirizzo base non appartiene a nessuna working zone, oppure quello in cui il base address appartiene alla working zone codificata in \textit{\texttt{RAM($7$)}}.
 			Tuttavia, se venisse garantito che gli indirizzi delle working zone nella RAM siano in ordine crescente (decrescente), sarebbero possibili due modifiche:
 			\begin{itemize}
 			\item \textit{Riduzione dei casi pessimi}: se l'indirizzo della working zone appena esaminata ha un valore più alto dell'indirizzo base, si può concludere che l'indirizzo base non appartiene a nessuna working zone, riducendo così il numero dei casi pessimi. Tale modifica al progetto è piuttosto modesta, dal momento che basterebbe modificare lo stato di \textit{\texttt{WZ\_DECISION}}.
