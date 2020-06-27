@@ -59,12 +59,14 @@ architecture rtl of project_reti_logiche is
 	signal wz_address		: unsigned(7 downto 0) := x"00";		--registro interno per la working zone considerata al momento 
 	signal calc_result		: unsigned(7 downto 0) := x"00";		--registro interno della codifica binaria dell'offset relativo alla working zone corretta
 	signal encoded_res		: unsigned(7 downto 0) := x"00";		--registro interno della codifica finale da mandare come risposta alla ram
+	signal reset_request		: std_logic := '0';					--tiene conto di una richiesta di reset proveniente dalla RAM
 	--segnali di modifica ai registri interni
-	signal count_add_sig	: std_logic := '0';	--aumenta il valore del contatore di working zone wz_counter
+	signal count_add_sig		: std_logic := '0';	--aumenta il valore del contatore di working zone wz_counter
 	signal base_address_next	: unsigned(7 downto 0) := x"00";	--nuovo valore del registro base_address
 	signal wz_address_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro wz_address
 	signal calc_result_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro calc_result
 	signal encoded_res_next		: unsigned(7 downto 0) := x"00";	--nuovo valore del registro encoded_res
+	signal reset_request_next	: std_logic := '0';
 
 	--Dichiarazioni costanti
 	constant NOFWZ : unsigned(15 downto 0) := x"0008";	--numero di working zone
@@ -72,10 +74,10 @@ architecture rtl of project_reti_logiche is
 begin
 
 	--questo processo aggiorna il contatore wz_counter e ne esegue il reset
-	wz_counter_process : process(i_rst, i_start, i_clk, count_add_sig)
+	wz_counter_process : process(i_clk, count_add_sig, current_state)
 	begin
-		--reset in caso di passaggio a start_idle o segnale di reset
-		if (i_rst = '1' or i_start = '0') then
+		--reset
+		if (current_state = ADD_ASK_STATE) then
 			wz_counter <= x"0000";
 
 		--aggiornamento del valore sul fronte di salita del clock
@@ -89,38 +91,53 @@ begin
 	end process;
 	
 	FF_saving : process(i_clk,
-						base_address, base_address_next, wz_address, wz_address_next,
-						calc_result, calc_result_next, encoded_res, encoded_res_next)
+						base_address, wz_address,
+						calc_result, encoded_res,
+						reset_request)
 	begin
 		
 		base_address	<= base_address;
 		wz_address		<= wz_address;
 		calc_result		<= calc_result;
 		encoded_res		<= encoded_res;
+		reset_request	<= reset_request;
 		
 		if(rising_edge(i_clk)) then
 			
-			base_address <= base_address_next;
-			wz_address <= wz_address_next;
-			calc_result <= calc_result_next;
-			encoded_res <= encoded_res_next;
+			base_address	<= base_address_next;
+			wz_address		<= wz_address_next;
+			calc_result		<= calc_result_next;
+			encoded_res		<= encoded_res_next;
+			reset_request	<= reset_request_next;
 
 		end if; --clock
 	end process;
 
-
-	--questo processo propaga lo stato successivo e gestisce un reset asincrono della macchina a stati
-	state_register : process(i_rst, i_clk)
+	--questo processo tiene conto della richiesta di reset
+	reset_handler : process(i_clk, i_rst, reset_request_next)
 	begin
+		reset_request_next <= reset_request_next;
 		if(i_rst = '1') then
-			current_state <= START_IDLE;
+			reset_request_next <= '1';
 		elsif(rising_edge(i_clk)) then
-			current_state <= next_state;
+			reset_request_next <= '0';
 		end if;
 	end process;
 
+	--questo processo propaga lo stato successivo e gestisce gli effetti del reset sulla macchina a stati
+	state_register : process(i_clk)
+	begin
+		if(rising_edge(i_clk)) then
+			if(reset_request = '1') then
+				current_state <= START_IDLE;
+			else
+				current_state <= next_state;
+			end if;--reset
+		end if; --clock
+	end process;
+
 	--questo processo gestisce le operazioni interne che non si interfacciano con la RAM
-	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, encoded_res)
+	calc_process : process(current_state, i_start, base_address, wz_address, calc_result, wz_counter, encoded_res, reset_request, reset_request_next)
 
 		constant MAX_OFFSET	: integer := 3;	--affinché il base address appartenga alla working zone, la differenza massima è 3
 
@@ -281,7 +298,12 @@ begin
 				encoded_res_next	<= encoded_res;
 			
 			when DONE_IDLE =>
-				o_done <= '1';
+				if(reset_request = '1' or reset_request_next = '1')then
+				--serve per evitare di alzare il segnale di done se per caso c'è un reset in corso
+					o_done <= '0';
+				else
+					o_done <= '1';
+				end if;
 				
 				if(i_start = '1') then
 					next_state <= DONE_IDLE;

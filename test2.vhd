@@ -615,6 +615,25 @@ begin	--begin architecture
 		reset <= '1';
 		wait for 35 ns;
 		reset <= '0';
+		wait for 17 ns;
+		reset <= '1';
+		wait for 2 ns;
+		reset <= '0';
+		wait for 2179 ns;
+		reset <= '1';
+		wait for 2 ns;
+		--total time elapsed: 2849 ns, next to falling_edge(clk)
+		reset <= '0';
+		wait for 548 ns;
+		reset <= '1';
+		wait for 2 ns;
+		--total time elapsed: 3399 ns, next to rising_edge(clk)
+		reset <= '0';
+		wait for 2000 ns;
+		reset <= '1';
+		wait for 1000 ns;	--long time reset
+		reset <= '0';
+		
 		wait;
 	end process;
 	
