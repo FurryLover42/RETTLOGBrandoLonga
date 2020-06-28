@@ -7,6 +7,7 @@
 	\graphicspath{C:/Users/Stefano\ Dalla\ Longa/Desktop/RETTLOGBrandoLonga/doc/}
 	\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
 \usepackage{epstopdf}
+\usepackage{tocloft}		% Table Of Contents
 \usepackage{listings}		% Formatting and highlighting
 
 \author{Stefano Dalla Longa\\pID 10535602 \and Nicolò Brandolese\\pID 10531144}
@@ -39,6 +40,8 @@
             
     \end{center}
 \end{titlepage}
+
+	\renewcommand{\contentsname}{Indice}	%renaming table of contents
 
 	\tableofcontents
 	\clearpage	%using \newpage gives a wrong table of content enumeration
@@ -75,7 +78,7 @@
 		\newline
 		Il funzionamento della macchina a stati è schematizzato nella figura seguente; gli stati in blu sono tutti e i soli stati nei quali opera \textit{\texttt{speak\_with\_RAM}} e sono progettati per durare un ciclo di clock, gli stati in verde sono gli stati di calcolo e codifica da parte di \textit{\texttt{calc\_process}} anch'essi progettati per cambiare ad ogni ciclo di clock, mentre gli stati in rosso sono stati di idle gestiti da \textit{\texttt{calc\_process}}, progettati per arrestare il flusso di esecuzione ed eventualmente ricominciare la computazione in base al valore di \textit{\texttt{i\_start}}.
 
-		\includegraphics[scale=0.275]{retlog_FSM_v1_2.png}
+		\includegraphics[scale=0.275]{retlog_FSM_v1_3.png}
 
 	\section{Test Eseguiti}
        
