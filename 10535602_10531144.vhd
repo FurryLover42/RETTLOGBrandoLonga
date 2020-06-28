@@ -39,9 +39,9 @@ architecture rtl of project_reti_logiche is
 		ADD_READING_STATE,  --legge l'indirizzo da codificare dalla RAM
 		WZ_ASK_STATE,		--richiede l'i-esima wz alla RAM
 		WZ_WAIT_RESPONSE,	--stato di attesa per permettere alla RAM di processare la richiesta
-		WZ_READING_STATE,	--legge la i-esima working zone e va in WZ_CALC_STATE. Se invece non ci sono altre wz da leggere, va in NO_WZ_ENCODING
+		WZ_READING_STATE,	--legge la i-esima working zone e va in WZ_CALC_STATE.
 		WZ_CALC_STATE,		--calcola se l'address appartiene alla working zone corrente
-		WZ_DECISION,		--in base a quanto fatto da WZ_CALC_STATE decide se passare a FOUND_WZ_ENCODING o WZ_ASK_STATE
+		WZ_DECISION,		--in base a quanto fatto da WZ_CALC_STATE decide se passare a FOUND_WZ_ENCODING, NO_WZ_ENCODING o WZ_ASK_STATE
 		FOUND_WZ_ENCODING,	--codifica la parola da scrivere nella ram in encoded_res, quindi va in WRITING_STATE
 		NO_WZ_ENCODING,		--codifica la parola da scrivere nella ram in encoded_res, quindi va in WRITING_STATE
 		WRITING_STATE,		--scrive nella ram il contenuto di encoded_res, quindi va in WRITING_WAIT
