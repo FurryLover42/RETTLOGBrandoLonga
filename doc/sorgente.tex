@@ -1,15 +1,31 @@
 \documentclass[12pt,a4paper,titlepage]{article}
 
+\usepackage{textcomp} %I don't know why it needs this
 \usepackage{titlesec} %spacing for sections
 \usepackage[utf8]{inputenc}	% Unicode support
 \usepackage[margin=0.5in]{geometry}
 \usepackage[pdftex]{graphicx}% Picture handling
-	\graphicspath{C:/Users/Stefano\ Dalla\ Longa/Desktop/RETTLOGBrandoLonga/doc/}
+	\graphicspath{{./Tests/}}
 	\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
 \usepackage{epstopdf}
 \usepackage{tocloft}		% Table Of Contents
+
+\usepackage{color}			%colors
+	\definecolor{light-gray}{gray}{0.92}
+	
 \usepackage{listings}		% Formatting and highlighting
+	\lstset{
+	basicstyle=\footnotesize,
+	breaklines=true,
+	%commentstyle=\color{blue},
+    tabsize=2,
+    framextopmargin=50pt,
+    %keywordstyle=\color{green},
+    rulecolor=\color{black},
+    backgroundcolor=\color{light-gray}
+    }
 \usepackage{hyperref}		% linking to other sections
+
 
 \author{Stefano Dalla Longa\\pID 10535602 \and Nicolò Brandolese\\pID 10531144}
 \date{}
@@ -133,10 +149,97 @@ Per ulteriori speculazioni sulle performance della soluzione implementata, si gu
 		\end{description}
 		
 	\section{Test eseguiti} \label{sec:test}
+       Per controllare il corretto funzionamento del circuito sono state svolte un centinaio di simulazioni, generate automaticamente (tranne pochi casi limite) e controllate manualmente. È stato usato uno script di python 3 per generare randomicamente il contenuto della RAM, scriverlo in un file di testo e scrivere il risultato da visualizzare in memoria, in codifica binaria, esadecimale e decimale, sotto forma di commento VHDL. È riportato il codice sorgente del programma, il quale accetta da riga di comando due elementi: il numero iniziale e il numero finale del test (riadattato per compatibilità con la nostra batteria di test).\newpage
        
-		Lorem ipsum dolor sit amet, consectetuer adipiscing elit.  
-		Etiam lobortis facilisissem.  Nullam nec mi et neque pharetra 
-		sollicitudin.  Praesent imperdiet mi necante...
+	\begin{lstlisting}
+	
+import sys
+import random
+
+starting = int(sys.argv[1])	#starting element
+ending = int(sys.argv[2])	#ending element
+
+f = open("random_test.txt", "w")
+
+for i in range(ending - starting + 1):
+	addr_list = []
+	f.write("\t\t\t\twhen %d =>\n\n" % (starting + i))
+	
+	for j in range(9):
+		random_num = random.getrandbits(7)
+		f.write("\t\t\t\tRAM(%d) " %(j))
+		f.write("<= assign(%d);\n" %(random_num))
+		addr_list.append(random_num)
+
+	#expected value calculation
+	f.write("\t\t\t\t--expected ")
+
+	expected = addr_list[8]	#default value, in case the address doesn't belong to any working zone
+	result = 0
+	for l in range(len(addr_list)-1):
+		found = 0
+		result = expected - addr_list[l]
+		if(result <= 3):	#found a suitable wz
+			found = l
+			break
+	
+	if(found != 0):		#you found a wz, now its bin encoding is written on file
+		expected_bin = '1' + format(found, '03b') + (("0001" if result == 0 else "0010") if result <= 1 else ("0100" if result == 2 else "1000"))
+		f.write(expected_bin[:4] + '.' + expected_bin[4:])
+		f.write(' ')
+		f.write(str(hex(int(expected_bin, 2)))[2:])
+		f.write(' ')
+		f.write(str(int(expected_bin, 2)))
+		f.write('\n\n')
+	else:
+		expected_bin = format(expected, '08b')
+		f.write(expected_bin[:4] + '.' + expected_bin[4:])	#expected is still the default value, which is now encoded into 8 digit binary number
+		f.write(' ')
+		f.write(str(hex(expected)[2:]))
+		f.write(' ')
+		f.write(str(expected))
+		f.write('\n\n')
+
+f.close()	#close file	
+	
+	\end{lstlisting}
+	
+	\newpage
+
+
+Qui riportiamo i risultati dei quattro test per noi più importanti:
+
+	\begin{enumerate}
+	
+	\item \textit{WZ in ordine crescente, risultato atteso negativo}: questo test si trova come esempio nella specifica
+		\begin{center}
+			\includegraphics[scale=0.4]{test1.png}
+		\end{center}
+		%\vspace{0.5cm}
+	
+	\item \textit{WZ in ordine crescente, risultato atteso positivo}: questo test si trova come esempio nella specifica
+	
+		\begin{center}
+			\includegraphics[scale=0.4]{test2.png}
+		\end{center}
+		%\vspace{0.5cm}
+
+	\item \textit{WZ in ordine sparso, risultato atteso positivo}
+	
+		\begin{center}
+			\includegraphics[scale=0.4]{test11.png}
+		\end{center}
+		%\vspace{0.5cm}
+
+	\item \textit{WZ duplicate, risultato atteso positivo}: in questo caso viene considerato valido l'indirizzo della prima working zone che contiene l'indirizzo base, a prescindere dall'offset
+	
+		\begin{center}
+			\includegraphics[scale=0.4]{test13.png}
+		\end{center}
+		\vspace{0.5cm}
+	
+	\end{enumerate}
+		
 	\section{Limitazioni e possibili ottimizzazioni}
 		\subsection{Scalabilità del componente}
 			La specifica fornisce una RAM contenente 8 indirizzi relativi ad altrettante working zone. Il contatore \textit{\texttt{wz\_counter}} è però un contatore a 16 bit, per un migliore collegamento con il segnale d'uscita \textit{\texttt{o\_address}} senza avere valori di tale uscita forzati al valore $0$. La macchina potrebbe essere quindi riadattata per un numero di working zone ben superiore a 8, ma sarebbe comunque necessaria una modifica allo standard di codifica dei risultati ottenuti, ad opera degli stati \textit{\texttt{FOUND\_WZ\_ENCODING}} e \textit{\texttt{NO\_WZ\_ENCODING}}, di fatto legati alla specifica di 8 sole working zone.
@@ -150,10 +253,10 @@ Per ulteriori speculazioni sulle performance della soluzione implementata, si gu
 			
 			\item \textit{Riduzione dei casi pessimi}: se l'indirizzo della working zone appena esaminata ha un valore più alto dell'indirizzo base, si può concludere che l'indirizzo base non appartiene a nessuna working zone, riducendo così il numero dei casi pessimi. Tale modifica al progetto è piuttosto modesta, dal momento che basterebbe modificare lo stato di \textit{\texttt{WZ\_DECISION}}.
 			
-			\item \textit{Ricerca binaria}: anziché eseguire una ricerca lineare della working zone risulterebbe più efficiente eseguire una ricerca binaria. Tale strategia ridurrebbe l'intera complessità temporale asintotica della macchina: se $n$ fosse il numero di working zone, si passerebbe da $T(n) \in \mathcal{O}(n)$ a $T(n) \in \mathcal{O}(\log n)$. Tuttavia, questa modifica è più onerosa di quella del punto precedente, dal momento che richiederebbe una modifica all'attuale metodo di scansione (affidato al semplice contatore di working zone \textit{\texttt{wz\_counter}}) e almeno un nuovo stato per il calcolo del prossimo indirizzo di memoria da richiedere.
+			\item \textit{Ricerca binaria}: anziché eseguire una ricerca lineare della working zone risulterebbe più efficiente eseguire una ricerca binaria. Tale strategia ridurrebbe l'intera complessità temporale asintotica della macchina: se $n$ fosse il numero di working zone, si passerebbe da $T(n) \in \mathcal{O}(n)$ a $T(n) \in \mathcal{O}(\log n)$. Tuttavia, questa modifica è più onerosa di quella del punto precedente, dal momento che richiederebbe una modifica all'attuale metodo di scansione (affidato al semplice contatore di working zone \textit{\texttt{wz\_counter}}) e almeno un nuovo stato per il calcolo del prossimo indirizzo di memoria da richiedere. 
 			\end{itemize}
 		\section{Conclusioni}
-			Quando non sai che cosa dire, è meglio se non dici nulla
-				\newline \newline \newline no scherzo scriviamo che non abbiamo warning
-		
+			Questo componente non ha grosse pretese in termini di prestazioni. Gli stessi ragionamenti del capitolo precedente porterebbero miglioramenti significativi solo con qualche ipotesi in più, ad esempio supponendo che la memorizzazione delle working zone sia effettivamente ordinabile, cosa addirittura non molto probabile. Si tratta quindi di speculazioni dipendenti dal contesto in cui opera il componente in questione, ma esse esulano molto dallo scopo di questa prova finale.\\
+			È importante osservare che, oltre ad essere sintetizzabile, il componente descritto è implementabile e supera correttamente entrambe le simulazioni post-implementazione, sia funzionale che temporale. I punti di forza del componente sono legati alla stesura del codice: i nostri sforzi si sono concentrati sull'evitare bad-practise, fornire un programma leggibile, eliminare ogni warning e fornire una documentazione adeguata, con la forma mentis che contraddistingue l'ingegneria del software.
+
 \end{document}
