@@ -1,0 +1,143 @@
+				when 5 =>
+
+				RAM(0) <= assign(7);
+				RAM(1) <= assign(37);
+				RAM(2) <= assign(29);
+				RAM(3) <= assign(61);
+				RAM(4) <= assign(118);
+				RAM(5) <= assign(70);
+				RAM(6) <= assign(77);
+				RAM(7) <= assign(114);
+				RAM(8) <= assign(115);
+				--expected 1100.0010 c2 194
+
+				when 6 =>
+
+				RAM(0) <= assign(30);
+				RAM(1) <= assign(29);
+				RAM(2) <= assign(54);
+				RAM(3) <= assign(11);
+				RAM(4) <= assign(37);
+				RAM(5) <= assign(115);
+				RAM(6) <= assign(77);
+				RAM(7) <= assign(88);
+				RAM(8) <= assign(86);
+				--expected 1101.0010 d2 210
+
+				when 7 =>
+
+				RAM(0) <= assign(53);
+				RAM(1) <= assign(69);
+				RAM(2) <= assign(112);
+				RAM(3) <= assign(96);
+				RAM(4) <= assign(23);
+				RAM(5) <= assign(15);
+				RAM(6) <= assign(101);
+				RAM(7) <= assign(7);
+				RAM(8) <= assign(95);
+				--expected 1010.0010 a2 162
+
+				when 8 =>
+
+				RAM(0) <= assign(111);
+				RAM(1) <= assign(112);
+				RAM(2) <= assign(116);
+				RAM(3) <= assign(46);
+				RAM(4) <= assign(42);
+				RAM(5) <= assign(42);
+				RAM(6) <= assign(112);
+				RAM(7) <= assign(70);
+				RAM(8) <= assign(32);
+				--expected 0010.0000 20 32
+
+				when 9 =>
+
+				RAM(0) <= assign(5);
+				RAM(1) <= assign(60);
+				RAM(2) <= assign(77);
+				RAM(3) <= assign(28);
+				RAM(4) <= assign(102);
+				RAM(5) <= assign(57);
+				RAM(6) <= assign(77);
+				RAM(7) <= assign(107);
+				RAM(8) <= assign(103);
+				--expected 1100.0010 c2 194
+
+				when 10 =>
+
+				RAM(0) <= assign(33);
+				RAM(1) <= assign(35);
+				RAM(2) <= assign(20);
+				RAM(3) <= assign(56);
+				RAM(4) <= assign(106);
+				RAM(5) <= assign(124);
+				RAM(6) <= assign(127);
+				RAM(7) <= assign(12);
+				RAM(8) <= assign(112);
+				--expected 1101.0010 d2 210
+
+				when 11 =>
+
+				RAM(0) <= assign(96);
+				RAM(1) <= assign(6);
+				RAM(2) <= assign(18);
+				RAM(3) <= assign(92);
+				RAM(4) <= assign(102);
+				RAM(5) <= assign(64);
+				RAM(6) <= assign(13);
+				RAM(7) <= assign(5);
+				RAM(8) <= assign(16);
+				--expected 0001.0000 10 16
+
+				when 12 =>
+
+				RAM(0) <= assign(21);
+				RAM(1) <= assign(79);
+				RAM(2) <= assign(47);
+				RAM(3) <= assign(112);
+				RAM(4) <= assign(120);
+				RAM(5) <= assign(26);
+				RAM(6) <= assign(75);
+				RAM(7) <= assign(52);
+				RAM(8) <= assign(16);
+				--expected 0001.0000 10 16
+
+				when 13 =>
+
+				RAM(0) <= assign(27);
+				RAM(1) <= assign(112);
+				RAM(2) <= assign(98);
+				RAM(3) <= assign(36);
+				RAM(4) <= assign(74);
+				RAM(5) <= assign(125);
+				RAM(6) <= assign(70);
+				RAM(7) <= assign(77);
+				RAM(8) <= assign(29);
+				--expected 0001.1101 1d 29
+
+				when 14 =>
+
+				RAM(0) <= assign(115);
+				RAM(1) <= assign(91);
+				RAM(2) <= assign(60);
+				RAM(3) <= assign(84);
+				RAM(4) <= assign(87);
+				RAM(5) <= assign(44);
+				RAM(6) <= assign(8);
+				RAM(7) <= assign(101);
+				RAM(8) <= assign(45);
+				--expected 0010.1101 2d 45
+
+				when 15 =>
+
+				RAM(0) <= assign(48);
+				RAM(1) <= assign(6);
+				RAM(2) <= assign(110);
+				RAM(3) <= assign(13);
+				RAM(4) <= assign(66);
+				RAM(5) <= assign(68);
+				RAM(6) <= assign(41);
+				RAM(7) <= assign(40);
+				RAM(8) <= assign(45);
+				--expected 0010.1101 2d 45
+
